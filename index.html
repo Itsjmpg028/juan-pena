@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard de seguimiento taller</title>
+<meta name="description" content="Cumplimiento de piezas por técnico y área del taller de reacondicionamiento.">
+<meta name="theme-color" content="#1F2937">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* Jamar: carmesí #D2132C, carbón #1F2937, blanco. Carbón para la marca y los datos; carmesí para la meta y lo seleccionado. */
+  .tj {
+    --tj-crimson: #D2132C;
+    --tj-ink: #1F2937;
+    --tj-serie: color-mix(in srgb, var(--color-fg) 72%, var(--color-panel));
+    --tj-serie-soft: color-mix(in srgb, var(--color-fg) 30%, var(--color-panel));
+    --tj-crimson-soft: color-mix(in srgb, #D2132C 12%, var(--color-panel));
+    display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg);
+  }
+
+  .tj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
+  .tj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
+  .tj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .72); }
+  .tj-eyebrow b { color: #fff; font-weight: 700; letter-spacing: .14em; }
+  .tj-eyebrow i { width: 8px; height: 8px; background: var(--tj-crimson); border-radius: 2px; display: inline-block; }
+  .tj-hero h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; text-wrap: balance; color: #fff; }
+  .tj-takeaway { margin: 0; font-size: var(--cds-font-size-body); color: rgba(255, 255, 255, .78); max-width: 75ch; }
+  .tj-takeaway b, .tj-takeaway .tj-strong { color: #fff; font-weight: 600; }
+
+  .tj-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); align-items: end; }
+  .tj-field { display: grid; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-width: 0; }
+  .tj-field select, .tj-multi summary { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 10px; max-width: 100%; }
+  .tj :is(select, button, summary, input):focus-visible { outline: 2px solid var(--tj-crimson); outline-offset: 1px; }
+  .tj-multi { position: relative; }
+  .tj-multi summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; min-width: 15rem; justify-content: space-between; }
+  .tj-multi summary::-webkit-details-marker { display: none; }
+  .tj-multi summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+  .tj-multi[open] summary::after { transform: rotate(-135deg) translateY(-1px); }
+  .tj-multi summary .tj-count { font-variant-numeric: tabular-nums; color: var(--color-fg-muted); }
+  .tj-multi summary.tj-partial { border-color: var(--tj-crimson); }
+  .tj-panel { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; width: min(22rem, calc(100vw - 32px)); max-height: 24rem; overflow: auto; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-sm); display: grid; gap: var(--cds-gap-xs); color: var(--color-fg); }
+  .tj-panel-actions { display: flex; gap: var(--cds-gap-sm); padding-bottom: 6px; border-bottom: 1px solid var(--color-border-line); }
+  .tj-panel-actions button { font: inherit; font-size: var(--cds-font-size-caption); background: none; border: 0; color: var(--tj-crimson); cursor: pointer; padding: 2px 0; font-weight: 600; }
+  .tj-panel h3 { margin: 8px 0 2px; font-size: var(--cds-font-size-caption); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-fg-muted); }
+  .tj-check { display: flex; align-items: center; gap: 8px; font-size: var(--cds-font-size-body); padding: 3px 2px; cursor: pointer; }
+  .tj-check input { accent-color: var(--tj-crimson); width: 16px; height: 16px; }
+  .tj-check .tj-muted { font-size: var(--cds-font-size-caption); }
+
+  .tj-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; background: var(--color-panel); }
+  .tj-seg button { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+  .tj-reset { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: transparent; color: var(--color-fg); cursor: pointer; }
+  .tj-picked { font: inherit; font-size: var(--cds-font-size-caption); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--tj-crimson); background: var(--tj-crimson-soft); color: var(--color-fg); cursor: pointer; }
+
+  .tj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--cds-gap-md); }
+  .tj-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: 6px; align-content: start; min-height: 8rem; }
+  .tj-kpi-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); letter-spacing: .02em; }
+  .tj-kpi-value { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.1; font-variant-numeric: tabular-nums; min-height: 1.1em; }
+  .tj-kpi-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .tj-meter { position: relative; height: 6px; border-radius: 3px; background: var(--cds-chart-grid); margin-top: 2px; }
+  .tj-meter-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--tj-serie); }
+  .tj-meter-goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tj-crimson); }
+  .tj-ok { color: var(--color-ok); }
+  .tj-warn { color: var(--color-warn); }
+  .tj-bad { color: var(--color-bad); }
+
+  .tj-section-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--cds-gap-sm); }
+  .tj-section-h h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .tj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--cds-gap-md); }
+  .tj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; container-type: inline-size; align-content: start; }
+  .tj-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .tj-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .tj-sw { width: 14px; height: 0; border-top: 2px solid var(--tj-serie); display: inline-block; }
+  .tj-sw-meta { border-top: 2px dashed var(--tj-crimson); }
+  .tj-sw-box { width: 10px; height: 10px; border: 0; border-radius: 2px; background: var(--tj-serie); }
+
+  /* Promedio por área y técnico */
+  .tj-avg { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: var(--cds-gap-md); }
+  .tj-avg-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; }
+  .tj-avg-card.tj-on { border-color: var(--tj-crimson); }
+  .tj-avg-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .tj-avg-area { font-size: var(--cds-font-size-caption); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .tj-avg-pct { font-size: var(--cds-font-size-caption); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tj-avg-big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .tj-avg-big .tj-num-big { font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); line-height: 1; font-variant-numeric: tabular-nums; }
+  .tj-avg-big .tj-unit { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-avg-list { display: grid; gap: 8px; margin: 4px 0 0; padding: 8px 0 0; border-top: 1px solid var(--color-border-line); list-style: none; }
+  .tj-avg-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; cursor: pointer; border-radius: 4px; }
+  .tj-avg-row:hover .tj-avg-name { text-decoration: underline; }
+  .tj-avg-row.tj-on .tj-avg-name { color: var(--tj-crimson); font-weight: 600; }
+  .tj-avg-name { font-size: var(--cds-font-size-caption); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tj-avg-val { font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .tj-avg-val b { font-weight: 600; }
+  .tj-avg-row .tj-meter { grid-column: 1 / -1; height: 5px; }
+
+  .tj-chart { position: relative; min-height: 230px; }
+  .tj-chart svg, .tj-bars svg { display: block; }
+  .tj-bars { position: relative; min-height: 120px; }
+  .tj-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 2; font-variant-numeric: tabular-nums; }
+  .tj-tip .tj-tip-h { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .tj-tip .tj-tip-r { display: flex; align-items: center; gap: 6px; }
+
+  .tj-scroll { overflow: auto; max-height: 34rem; }
+  .tj-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+  .tj-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); border-bottom: 2px solid var(--tj-ink); padding: 6px 8px; white-space: nowrap; z-index: 1; }
+  .tj-table th.tj-num, .tj-table td.tj-num { text-align: right; }
+  .tj-table th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .tj-table th[aria-sort] button { color: var(--color-fg); }
+  .tj-table td { padding: 7px 8px; border-bottom: 1px solid var(--color-border-line); vertical-align: middle; }
+  .tj-table tbody tr { cursor: pointer; }
+  .tj-table tbody tr:hover td { background: var(--color-bg); }
+  .tj-table tr.tj-sel td { background: var(--tj-crimson-soft); }
+  .tj-table tr.tj-sel td:first-child { box-shadow: inset 3px 0 0 var(--tj-crimson); }
+  .tj-table tr.tj-inactive td:first-child { color: var(--color-fg-muted); }
+  .tj-name { font-weight: 500; white-space: nowrap; }
+  .tj-cbar { display: flex; align-items: center; gap: 8px; min-width: 9rem; }
+  .tj-cbar-track { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--cds-chart-grid); }
+  .tj-cbar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .tj-cbar-goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tj-crimson); }
+  .tj-cbar-txt { width: 3.4rem; text-align: right; }
+  .tj-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); border: 1px solid currentColor; white-space: nowrap; font-weight: 600; }
+  .tj-muted { color: var(--color-fg-muted); }
+  @container (max-width: 760px) { .tj-sec { display: none; } }
+
+  .tj-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--cds-gap-sm); }
+  .tj-search { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-bg); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 10px; min-width: 0; width: min(100%, 18rem); }
+  .tj-reg td { white-space: nowrap; }
+  .tj-reg td.tj-wrap { white-space: normal; min-width: 14rem; }
+  .tj-reg tbody tr { cursor: default; }
+
+  .tj-failed { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+  .tj-failed::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+</head>
+<body>
+<main id="dash-root">
+<div class="tj">
+  <header class="tj-hero" id="inicio">
+    <div class="tj-eyebrow"><i></i><b>Jamar</b><span>Taller de reacondicionamiento</span></div>
+    <h1 id="titulo">Dashboard de seguimiento taller</h1>
+    <p class="tj-takeaway" id="resumen" data-source="resumen_tecnico"><span class="dash-skeleton">—</span></p>
+    <div class="tj-updated"><span id="tj-actualizado">Cargando datos del libro APP JAMAR…</span><button type="button" id="tj-refrescar">Actualizar ahora</button></div>
+  </header>
+
+  <div class="tj-filters" id="filtros">
+    <label class="tj-field" for="f-mes">Mes
+      <select id="f-mes" data-source="resumen_tecnico"></select>
+    </label>
+    <label class="tj-field" for="f-area">Área
+      <select id="f-area" data-source="tecnicos"></select>
+    </label>
+    <div class="tj-field">Técnicos incluidos
+      <details class="tj-multi" id="f-tecnicos">
+        <summary id="f-tecnicos-sum"><span>Todos los técnicos</span><span class="tj-count"></span></summary>
+        <div class="tj-panel" id="f-tecnicos-panel">
+          <div class="tj-panel-actions">
+            <button type="button" id="f-todos">Seleccionar todos</button>
+            <button type="button" id="f-ninguno">Quitar todos</button>
+          </div>
+          <div id="f-tecnicos-lista" data-source="resumen_tecnico"></div>
+        </div>
+      </details>
+    </div>
+    <div class="tj-field">Tipo de servicio
+      <div class="tj-seg" id="f-tipo" role="group" aria-label="Tipo de servicio"></div>
+    </div>
+    <button type="button" class="tj-reset" id="f-reset">Restablecer</button>
+    <button type="button" class="tj-picked" id="picked" hidden></button>
+  </div>
+
+  <section class="tj-kpis" id="indicadores" aria-label="Indicadores" data-source="resumen_tecnico">
+    <div class="tj-kpi" id="kpi-cumplimiento">
+      <span class="tj-kpi-label">Cumplimiento a la fecha</span>
+      <span class="tj-kpi-value dash-skeleton" id="k1">—</span>
+      <div class="tj-meter" id="k1m"><div class="tj-meter-fill"></div><div class="tj-meter-goal"></div></div>
+      <span class="tj-kpi-sub" id="k1s"></span>
+    </div>
+    <div class="tj-kpi" id="kpi-piezas">
+      <span class="tj-kpi-label">Piezas producidas</span>
+      <span class="tj-kpi-value dash-skeleton" id="k2">—</span>
+      <span class="tj-kpi-sub" id="k2s"></span>
+    </div>
+    <div class="tj-kpi" id="kpi-promedio">
+      <span class="tj-kpi-label">Promedio diario actual</span>
+      <span class="tj-kpi-value dash-skeleton" id="k6">—</span>
+      <span class="tj-kpi-sub" id="k6s"></span>
+    </div>
+    <div class="tj-kpi" id="kpi-mensual">
+      <span class="tj-kpi-label">Avance de la meta mensual</span>
+      <span class="tj-kpi-value dash-skeleton" id="k3">—</span>
+      <div class="tj-meter" id="k3m"><div class="tj-meter-fill"></div><div class="tj-meter-goal"></div></div>
+      <span class="tj-kpi-sub" id="k3s"></span>
+    </div>
+    <div class="tj-kpi" id="kpi-proyeccion">
+      <span class="tj-kpi-label">Proyección al cierre</span>
+      <span class="tj-kpi-value dash-skeleton" id="k4">—</span>
+      <span class="tj-kpi-sub" id="k4s"></span>
+    </div>
+    <div class="tj-kpi" id="kpi-quinto">
+      <span class="tj-kpi-label" id="k5l">Técnicos bajo 85 %</span>
+      <span class="tj-kpi-value dash-skeleton" id="k5">—</span>
+      <span class="tj-kpi-sub" id="k5s"></span>
+    </div>
+  </section>
+  <p class="tj-note" id="definiciones">Meta a la fecha = meta diaria × días hábiles del mes transcurridos, incluido hoy. Promedio diario = piezas ÷ días hábiles transcurridos. Estado: Cumple desde 100 %, Cerca entre 85 % y 99 %, Bajo por debajo de 85 %. Las piezas de sábados y festivos suman, pero esos días no agregan meta. Con un tipo de servicio elegido, las piezas se comparan con la meta completa del técnico.</p>
+
+  <section class="tj-card" id="promedios">
+    <div class="tj-section-h">
+      <h2>Promedio actual de piezas por día</h2>
+      <span class="tj-note">Por área y por técnico, frente a su meta diaria. Haz clic en un técnico para verlo solo.</span>
+    </div>
+    <div class="tj-avg" id="avg-cards" data-source="resumen_tecnico"></div>
+  </section>
+
+  <section class="tj-grid" id="tendencia">
+    <div class="tj-card" id="card-acumulado">
+      <h2>Acumulado del mes frente a la meta</h2>
+      <div class="tj-legend">
+        <span><i class="tj-sw"></i>Piezas acumuladas</span>
+        <span><i class="tj-sw tj-sw-meta"></i>Meta acumulada</span>
+      </div>
+      <div class="tj-chart" id="chart-acumulado" data-source="registros calendario resumen_tecnico"></div>
+    </div>
+    <div class="tj-card" id="card-diario">
+      <h2>Piezas por día</h2>
+      <div class="tj-legend">
+        <span><i class="tj-sw tj-sw-box"></i>Piezas del día</span>
+        <span><i class="tj-sw tj-sw-meta"></i>Meta diaria</span>
+      </div>
+      <div class="tj-chart" id="chart-diario" data-source="registros calendario resumen_tecnico"></div>
+    </div>
+  </section>
+
+  <section class="tj-card" id="card-tecnicos">
+    <h2>Cumplimiento por técnico</h2>
+    <p class="tj-note">Haz clic en un técnico para ver solo sus datos en todo el tablero. Haz clic en un encabezado para ordenar.</p>
+    <div class="tj-scroll">
+      <table class="tj-table" id="tabla-tecnicos" data-source="resumen_tecnico" data-row-key="mes,tecnico,tipo">
+        <thead><tr>
+          <th data-field="tecnico"><button type="button" data-sort="tecnico">Técnico</button></th>
+          <th data-field="area" class="tj-sec"><button type="button" data-sort="area">Área</button></th>
+          <th data-field="meta_diaria" class="tj-num tj-sec"><button type="button" data-sort="meta_diaria">Meta diaria</button></th>
+          <th data-field="promedio_habil" class="tj-num"><button type="button" data-sort="promedio_habil">Prom. diario</button></th>
+          <th data-field="piezas" class="tj-num"><button type="button" data-sort="piezas">Piezas</button></th>
+          <th data-field="meta_a_fecha" class="tj-num tj-sec"><button type="button" data-sort="meta_a_fecha">Meta a la fecha</button></th>
+          <th data-field="cumplimiento_a_fecha"><button type="button" data-sort="cumplimiento_a_fecha">Cumplimiento</button></th>
+          <th data-field="estado"><button type="button" data-sort="estado">Estado</button></th>
+          <th data-field="meta_mes" class="tj-num tj-sec"><button type="button" data-sort="meta_mes">Meta del mes</button></th>
+          <th data-field="avance_mes" class="tj-num tj-sec"><button type="button" data-sort="avance_mes">Avance mes</button></th>
+          <th data-field="proyeccion_cierre" class="tj-num tj-sec"><button type="button" data-sort="proyeccion_cierre">Proyección</button></th>
+          <th data-field="proyeccion_pct" class="tj-num"><button type="button" data-sort="proyeccion_pct">Proyección %</button></th>
+        </tr></thead>
+        <tbody id="tecnicos-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="tj-card" id="card-areas">
+    <h2>Cumplimiento por área</h2>
+    <p class="tj-note">Piezas del área sobre la suma de las metas a la fecha de sus técnicos incluidos. Haz clic en una barra para filtrar el área.</p>
+    <div class="tj-bars" id="chart-areas" data-source="resumen_tecnico"></div>
+  </section>
+
+  <section class="tj-card" id="card-registros">
+    <div class="tj-toolbar">
+      <h2>Registros de producción</h2>
+      <input type="search" class="tj-search" id="buscar" placeholder="Buscar lote, producto, pieza…" aria-label="Buscar en los registros">
+    </div>
+    <p class="tj-note" id="registros-nota">Registros del periodo y los filtros elegidos, del más reciente al más antiguo.</p>
+    <div class="tj-scroll">
+      <table class="tj-table tj-reg" id="tabla-registros" data-source="registros" data-row-key="fila">
+        <thead><tr>
+          <th data-field="fecha_hora">Fecha y hora</th>
+          <th data-field="tecnico">Técnico</th>
+          <th data-field="area" class="tj-sec">Área</th>
+          <th data-field="tipo">Servicio</th>
+          <th data-field="lote" class="tj-sec">Lote</th>
+          <th data-field="producto">Producto</th>
+          <th data-field="pieza" class="tj-sec">Pieza o módulo</th>
+          <th data-field="piezas" class="tj-num">Piezas</th>
+        </tr></thead>
+        <tbody id="registros-body"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="shim.js"></script>
+<script src="calcs.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const nf = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
+  const pf = new Intl.NumberFormat('es-CO', { style: 'percent', maximumFractionDigits: 0 });
+  const fmtN = (x) => (x == null ? '—' : nf.format(x));
+  const fmt1 = (x) => (x == null ? '—' : nf1.format(x));
+  const fmtP = (x) => (x == null ? '—' : pf.format(x));
+  const mesLabel = (m) => { const [y, mm] = m.split('-'); return `${MESES[Number(mm) - 1]} ${y}`; };
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const titleCase = (s) => String(s).toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const enc = (v) => String(v).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+  const where = (o) => Object.entries(o).map(([k, v]) => `${enc(k)}=${enc(v)}`).join('&');
+  const estadoClase = (c) => (c == null ? 'tj-muted' : c >= 1 ? 'tj-ok' : c >= 0.85 ? 'tj-warn' : 'tj-bad');
+  const estadoColor = (c) => (c == null ? 'var(--cds-chart-muted)' : c >= 1 ? 'var(--color-ok)' : c >= 0.85 ? 'var(--color-warn)' : 'var(--color-bad)');
+  const CRIMSON = 'var(--tj-crimson)';
+  const SERIE = 'var(--tj-serie)';
+
+  // ---------- filters ----------
+  const setDefaults = () => dash.setParams({ mes: hoyISO().slice(0, 7), tipo: 'Todos' });
+  if (!dash.params().mes) setDefaults();
+  const excluidos = () => new Set(dash.params().excluidos || []);
+  $('f-reset').addEventListener('click', () => { dash.resetParams(); setDefaults(); });
+  $('f-mes').addEventListener('change', (e) => dash.setParams({ mes: e.target.value }));
+  $('f-area').addEventListener('change', (e) => dash.setParams({ area: e.target.value || null, tecnico: null }));
+  $('picked').addEventListener('click', () => dash.setParams({ tecnico: null }));
+  $('f-tecnicos-lista').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[type=checkbox]');
+    if (!cb) return;
+    const ex = excluidos();
+    if (cb.checked) ex.delete(cb.value); else ex.add(cb.value);
+    const p = dash.params();
+    dash.setParams({ excluidos: [...ex], tecnico: p.tecnico && ex.has(p.tecnico) ? null : p.tecnico ?? null });
+  });
+  $('f-todos').addEventListener('click', () => {
+    const visibles = scope().nombresArea;
+    const ex = excluidos(); visibles.forEach((n) => ex.delete(n));
+    dash.setParams({ excluidos: [...ex] });
+  });
+  $('f-ninguno').addEventListener('click', () => {
+    const visibles = scope().nombresArea;
+    const ex = excluidos(); visibles.forEach((n) => ex.add(n));
+    dash.setParams({ excluidos: [...ex], tecnico: null });
+  });
+  document.addEventListener('click', (e) => {
+    const d = $('f-tecnicos');
+    if (d.open && !d.contains(e.target)) d.open = false;
+  });
+  const pickTecnico = (t) => dash.setParams({ tecnico: dash.params().tecnico === t ? null : t });
+  $('tecnicos-body').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-tecnico]'); if (tr) pickTecnico(tr.dataset.tecnico); });
+  $('avg-cards').addEventListener('click', (e) => { const li = e.target.closest('[data-tecnico]'); if (li) pickTecnico(li.dataset.tecnico); });
+  $('buscar').addEventListener('input', () => drawRegistros());
+
+  let sortKey = 'cumplimiento_a_fecha', sortDir = 1;
+  document.querySelectorAll('#tabla-tecnicos th button').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.sort;
+    if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+    drawTecnicos();
+  }));
+
+  const st = (id) => dash.data(id);
+  const allOk = (ids) => ids.every((id) => st(id).status === 'ok');
+  const anyFailed = (ids) => ids.some((id) => ['error', 'connect', 'declined', 'missing'].includes(st(id).status));
+  function failBox(el) { el.replaceChildren(); const d = document.createElement('div'); d.className = 'tj-failed'; d.textContent = 'No se pudo cargar'; el.appendChild(d); }
+  function mark(el, field, w) {
+    el.setAttribute('data-source', 'resumen_tecnico');
+    el.setAttribute('data-field', field);
+    el.setAttribute('data-where', where(w));
+  }
+  function unmark(el) { ['data-source', 'data-field', 'data-where'].forEach((a) => el.removeAttribute(a)); }
+  function span(text, cls) { const s = document.createElement('span'); s.textContent = text; if (cls) s.className = cls; return s; }
+
+  // ---------- current scope ----------
+  function scope() {
+    const p = dash.params();
+    const mes = p.mes || hoyISO().slice(0, 7);
+    const tipo = p.tipo || 'Todos';
+    const ex = new Set(p.excluidos || []);
+    const tec = st('resumen_tecnico').data || [];
+    const filasArea = tec.filter((r) => r.mes === mes && r.tipo === tipo && (!p.area || r.area === p.area));
+    const filas = filasArea.filter((r) => !ex.has(r.tecnico));
+    const tecnico = p.tecnico && filas.some((r) => r.tecnico === p.tecnico) ? p.tecnico : null;
+    const sel = tecnico ? filas.filter((r) => r.tecnico === tecnico) : filas;
+    const nombresArea = [...new Set(filasArea.map((r) => r.tecnico))];
+    return { p, mes, tipo, area: p.area || null, tecnico, filasArea, filas, sel, ex, nombresArea };
+  }
+
+  // Sum of the selected technicians' rows (same arithmetic as each technician's row).
+  function total(rows) {
+    const t = { piezas: 0, meta_a_fecha: 0, meta_mes: 0, meta_diaria: 0, proyeccion_cierre: 0, con_meta: 0, cumplen: 0, cerca: 0, bajo: 0, dias_habiles_a_fecha: 0, dias_habiles_mes: 0, tecnicos: rows.length };
+    for (const r of rows) {
+      t.piezas += r.piezas; t.proyeccion_cierre += r.proyeccion_cierre || 0;
+      t.dias_habiles_a_fecha = r.dias_habiles_a_fecha; t.dias_habiles_mes = r.dias_habiles_mes;
+      if (r.meta_diaria != null) {
+        t.meta_a_fecha += r.meta_a_fecha; t.meta_mes += r.meta_mes; t.meta_diaria += r.meta_diaria; t.con_meta += 1;
+        if (r.estado === 'Cumple') t.cumplen += 1; else if (r.estado === 'Cerca') t.cerca += 1; else if (r.estado === 'Bajo') t.bajo += 1;
+      }
+    }
+    t.cumplimiento_a_fecha = t.meta_a_fecha ? t.piezas / t.meta_a_fecha : null;
+    t.avance_mes = t.meta_mes ? t.piezas / t.meta_mes : null;
+    t.promedio_habil = t.dias_habiles_a_fecha ? t.piezas / t.dias_habiles_a_fecha : null;
+    return t;
+  }
+
+  function drawFilters() {
+    const p = dash.params();
+    const tec = st('resumen_tecnico');
+    if (tec.status === 'ok') {
+      const meses = [...new Set(tec.data.map((r) => r.mes))].sort().reverse();
+      $('f-mes').replaceChildren(...meses.map((m) => new Option(cap(mesLabel(m)), m)));
+      $('f-mes').value = p.mes || meses[0];
+    }
+    const t = st('tecnicos');
+    if (t.status === 'ok') {
+      const areas = [...new Set(t.data.map((r) => r.area).filter(Boolean))];
+      $('f-area').replaceChildren(new Option('Todas las áreas', ''), ...areas.map((a) => new Option(titleCase(a), a)));
+      $('f-area').value = p.area || '';
+    }
+    if (tec.status !== 'ok') return;
+    const s = scope();
+    // Technician checklist, grouped by area
+    const porArea = d3.group(s.filasArea, (r) => r.area);
+    const lista = $('f-tecnicos-lista');
+    const scrollTop = $('f-tecnicos-panel').scrollTop;
+    lista.replaceChildren(...[...porArea].flatMap(([area, rows]) => {
+      const h = document.createElement('h3'); h.textContent = titleCase(area);
+      const items = rows.slice().sort((a, b) => a.tecnico.localeCompare(b.tecnico, 'es')).map((r) => {
+        const lab = document.createElement('label'); lab.className = 'tj-check';
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = r.tecnico; cb.checked = !s.ex.has(r.tecnico);
+        lab.append(cb, span(titleCase(r.tecnico)));
+        if (!r.activo) lab.append(span('inactivo', 'tj-muted'));
+        return lab;
+      });
+      return [h, ...items];
+    }));
+    $('f-tecnicos-panel').scrollTop = scrollTop;
+    const incl = s.nombresArea.filter((n) => !s.ex.has(n)).length;
+    const sum = $('f-tecnicos-sum');
+    sum.firstElementChild.textContent = incl === s.nombresArea.length ? 'Todos los técnicos' : incl === 0 ? 'Ningún técnico' : 'Algunos técnicos';
+    sum.lastElementChild.textContent = `${incl} de ${s.nombresArea.length}`;
+    sum.classList.toggle('tj-partial', incl !== s.nombresArea.length);
+
+    const tipos = [...new Set(tec.data.map((r) => r.tipo))];
+    $('f-tipo').replaceChildren(...tipos.map((ti) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.textContent = ti === 'Todos' ? 'Todos' : cap(ti.toLowerCase());
+      b.setAttribute('aria-pressed', String(ti === s.tipo));
+      b.addEventListener('click', () => dash.setParams({ tipo: ti }));
+      return b;
+    }));
+    $('picked').hidden = !s.tecnico;
+    $('picked').textContent = s.tecnico ? `Viendo: ${titleCase(s.tecnico)}  ×` : '';
+  }
+
+  function meter(id, value) {
+    const m = $(id); if (!m) return;
+    const max = Math.max(1.2, value || 0);
+    m.querySelector('.tj-meter-fill').style.width = `${Math.min(100, ((value || 0) / max) * 100)}%`;
+    m.querySelector('.tj-meter-fill').style.background = estadoColor(value);
+    m.querySelector('.tj-meter-goal').style.left = `${(1 / max) * 100}%`;
+  }
+
+  // ---------- headline + KPIs ----------
+  function drawKpis() {
+    const ids = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'];
+    if (st('resumen_tecnico').status !== 'ok') {
+      if (anyFailed(['resumen_tecnico'])) {
+        ids.forEach((id) => { const el = $(id); el.classList.remove('dash-skeleton'); el.replaceChildren(span('No se pudo cargar', 'tj-failed')); });
+        $('resumen').replaceChildren();
+      }
+      return;
+    }
+    ids.forEach((id) => $(id).classList.remove('dash-skeleton'));
+    const s = scope();
+    const uno = s.tecnico ? s.sel[0] : null;
+    const row = uno || total(s.sel);
+    const w = uno ? { mes: s.mes, tecnico: uno.tecnico, tipo: s.tipo } : null;
+    // A single technician's figures are cited cell by cell; a group's are sums of the rows shown in the technician table.
+    const val = (id, field, text, cls) => { const el = $(id); if (w) mark(el, field, w); else unmark(el); el.textContent = text; el.className = 'tj-kpi-value' + (cls ? ' ' + cls : ''); };
+    const ms = (field, text) => { const e = span(text); if (w) mark(e, field, w); return e; };
+    if (!s.sel.length) {
+      ids.forEach((id) => { unmark($(id)); $(id).textContent = '—'; });
+      ['k1s', 'k2s', 'k3s', 'k4s', 'k5s', 'k6s'].forEach((id) => $(id).replaceChildren());
+      meter('k1m', null); meter('k3m', null);
+      $('resumen').textContent = `Ningún técnico incluido para ${mesLabel(s.mes)} con estos filtros.`;
+      return;
+    }
+    val('k1', 'cumplimiento_a_fecha', fmtP(row.cumplimiento_a_fecha), estadoClase(row.cumplimiento_a_fecha));
+    meter('k1m', row.cumplimiento_a_fecha);
+    $('k1s').replaceChildren(ms('piezas', fmtN(row.piezas)), span(' de '), ms('meta_a_fecha', fmtN(row.meta_a_fecha)), span(' piezas esperadas'));
+    val('k2', 'piezas', fmtN(row.piezas));
+    $('k2s').replaceChildren(span('Día hábil '), ms('dias_habiles_a_fecha', fmtN(row.dias_habiles_a_fecha)), span(' de '), ms('dias_habiles_mes', fmtN(row.dias_habiles_mes)));
+    const ritmo = row.meta_diaria ? row.promedio_habil / row.meta_diaria : null;
+    val('k6', 'promedio_habil', fmt1(row.promedio_habil), estadoClase(ritmo));
+    $('k6s').replaceChildren(span('piezas por día hábil · meta '), ms('meta_diaria', fmtN(row.meta_diaria)));
+    val('k3', 'avance_mes', fmtP(row.avance_mes));
+    meter('k3m', row.avance_mes);
+    $('k3s').replaceChildren(span('Meta del mes: '), ms('meta_mes', fmtN(row.meta_mes)));
+    val('k4', 'proyeccion_cierre', fmtN(row.proyeccion_cierre), estadoClase(row.meta_mes ? row.proyeccion_cierre / row.meta_mes : null));
+    $('k4s').replaceChildren(span('piezas al ritmo actual, frente a '), ms('meta_mes', fmtN(row.meta_mes)));
+    if (uno) {
+      $('k5l').textContent = 'Días con registro';
+      val('k5', 'dias_con_registro', fmtN(uno.dias_con_registro));
+      $('k5s').replaceChildren(ms('promedio_diario', fmt1(uno.promedio_diario)), span(' piezas por día con registro'));
+    } else {
+      $('k5l').textContent = 'Técnicos bajo 85 %';
+      val('k5', 'bajo', fmtN(row.bajo), row.bajo > 0 ? 'tj-bad' : 'tj-ok');
+      $('k5s').replaceChildren(span(`de ${nf.format(row.con_meta)} con meta · ${nf.format(row.cumplen)} cumplen`));
+    }
+
+    const quien = uno ? titleCase(uno.tecnico) : s.area ? `El área de ${titleCase(s.area)}` : 'El taller';
+    const nota = !uno && s.ex.size && s.filas.length < s.filasArea.length ? ` (sin ${nf.format(s.filasArea.length - s.filas.length)} técnicos quitados del filtro)` : '';
+    const cerrado = s.mes < hoyISO().slice(0, 7);
+    const parts = [
+      span(`${cap(mesLabel(s.mes))}: ${quien}${nota} ${cerrado ? 'cerró' : 'va'} al `),
+      ms('cumplimiento_a_fecha', fmtP(row.cumplimiento_a_fecha)),
+      span(` de su meta${cerrado ? '' : ' a la fecha'}, con `),
+      ms('piezas', fmtN(row.piezas)),
+      span(' de '),
+      ms('meta_a_fecha', fmtN(row.meta_a_fecha)),
+      span(' piezas y un promedio de '),
+      ms('promedio_habil', fmt1(row.promedio_habil)),
+      span(' por día hábil.'),
+    ];
+    parts.forEach((p, i) => { if (i % 2 === 1) p.className = 'tj-strong'; });
+    if (!uno && row.bajo > 0) {
+      const bajos = s.filas.filter((r) => r.estado === 'Bajo').sort((a, b) => a.cumplimiento_a_fecha - b.cumplimiento_a_fecha);
+      parts.push(span(` Bajo el 85 %: ${bajos.slice(0, 3).map((r) => titleCase(r.tecnico)).join(', ')}${bajos.length > 3 ? ' y otros' : ''}.`));
+    }
+    $('resumen').replaceChildren(...parts);
+  }
+
+  // ---------- averages by area and technician ----------
+  function drawPromedios() {
+    const box = $('avg-cards');
+    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) failBox(box); return; }
+    const s = scope();
+    const porArea = [...d3.group(s.filas, (r) => r.area)]
+      .map(([area, rows]) => ({ area, rows, t: total(rows) }))
+      .sort((a, b) => (b.t.cumplimiento_a_fecha ?? -1) - (a.t.cumplimiento_a_fecha ?? -1));
+    if (!porArea.length) { box.replaceChildren(span('Ningún técnico incluido con estos filtros.', 'tj-note')); return; }
+    box.replaceChildren(...porArea.map(({ area, rows, t }) => {
+      const card = document.createElement('article'); card.className = 'tj-avg-card';
+      if (s.tecnico && rows.some((r) => r.tecnico === s.tecnico)) card.classList.add('tj-on');
+      const ritmo = t.meta_diaria ? t.promedio_habil / t.meta_diaria : null;
+      const top = document.createElement('div'); top.className = 'tj-avg-top';
+      top.append(span(titleCase(area), 'tj-avg-area'), span(ritmo == null ? 'sin meta' : `${fmtP(ritmo)} de la meta`, 'tj-avg-pct ' + estadoClase(ritmo)));
+      const big = document.createElement('div'); big.className = 'tj-avg-big';
+      big.append(span(fmt1(t.promedio_habil), 'tj-num-big'), span(`piezas/día · meta ${fmtN(t.meta_diaria)} · ${nf.format(rows.length)} ${rows.length === 1 ? 'técnico' : 'técnicos'}`, 'tj-unit'));
+      const m = document.createElement('div'); m.className = 'tj-meter'; m.innerHTML = '<div class="tj-meter-fill"></div><div class="tj-meter-goal"></div>';
+      const maxA = Math.max(1.2, ritmo || 0);
+      m.firstChild.style.width = `${Math.min(100, ((ritmo || 0) / maxA) * 100)}%`; m.firstChild.style.background = estadoColor(ritmo); m.lastChild.style.left = `${(1 / maxA) * 100}%`;
+      const ul = document.createElement('ul'); ul.className = 'tj-avg-list';
+      const ordenados = rows.slice().sort((a, b) => ((b.meta_diaria ? b.promedio_habil / b.meta_diaria : -1) - (a.meta_diaria ? a.promedio_habil / a.meta_diaria : -1)));
+      const maxT = Math.max(1.2, ...ordenados.map((r) => (r.meta_diaria ? (r.promedio_habil || 0) / r.meta_diaria : 0)));
+      ordenados.forEach((r) => {
+        const li = document.createElement('li'); li.className = 'tj-avg-row'; li.dataset.tecnico = r.tecnico;
+        if (r.tecnico === s.tecnico) li.classList.add('tj-on');
+        const w = { mes: r.mes, tecnico: r.tecnico, tipo: r.tipo };
+        const name = span(titleCase(r.tecnico), 'tj-avg-name'); name.title = r.tecnico;
+        const v = document.createElement('span'); v.className = 'tj-avg-val';
+        const b = document.createElement('b'); b.textContent = fmt1(r.promedio_habil); mark(b, 'promedio_habil', w);
+        const mt = span(fmtN(r.meta_diaria)); mark(mt, 'meta_diaria', w);
+        v.append(b, span(' / '), mt);
+        const rr = r.meta_diaria ? (r.promedio_habil || 0) / r.meta_diaria : null;
+        const bar = document.createElement('div'); bar.className = 'tj-meter'; bar.innerHTML = '<div class="tj-meter-fill"></div><div class="tj-meter-goal"></div>';
+        bar.firstChild.style.width = `${Math.min(100, ((rr || 0) / maxT) * 100)}%`; bar.firstChild.style.background = estadoColor(rr); bar.lastChild.style.left = `${(1 / maxT) * 100}%`;
+        li.append(name, v, bar);
+        ul.appendChild(li);
+      });
+      card.append(top, big, m, ul);
+      return card;
+    }));
+  }
+
+  // ---------- technician table ----------
+  function drawTecnicos() {
+    const body = $('tecnicos-body');
+    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 11; failBox(td); } return; }
+    const s = scope();
+    const filas = [...s.filas].sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * sortDir;
+    });
+    document.querySelectorAll('#tabla-tecnicos th').forEach((th) => {
+      const k = th.querySelector('button')?.dataset.sort;
+      if (k === sortKey) th.setAttribute('aria-sort', sortDir === 1 ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort');
+    });
+    const maxC = Math.max(1.2, ...filas.map((r) => r.cumplimiento_a_fecha || 0));
+    body.replaceChildren(...filas.map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = [r.mes, r.tecnico, r.tipo].map(encodeURIComponent).join(',');
+      tr.dataset.tecnico = r.tecnico;
+      if (r.tecnico === s.tecnico) tr.classList.add('tj-sel');
+      if (!r.activo) tr.classList.add('tj-inactive');
+      const td = (text, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; if (text != null) c.textContent = text; tr.appendChild(c); return c; };
+      td(r.tecnico, 'tj-name');
+      td(r.area, 'tj-sec');
+      td(fmtN(r.meta_diaria), 'tj-num tj-sec');
+      td(fmt1(r.promedio_habil), 'tj-num');
+      td(fmtN(r.piezas), 'tj-num');
+      td(fmtN(r.meta_a_fecha), 'tj-num tj-sec');
+      const c = td(null);
+      const wrap = document.createElement('div'); wrap.className = 'tj-cbar';
+      const track = document.createElement('div'); track.className = 'tj-cbar-track';
+      const fill = document.createElement('div'); fill.className = 'tj-cbar-fill';
+      fill.style.width = `${Math.min(100, ((r.cumplimiento_a_fecha || 0) / maxC) * 100)}%`;
+      fill.style.background = estadoColor(r.cumplimiento_a_fecha);
+      const goal = document.createElement('div'); goal.className = 'tj-cbar-goal'; goal.style.left = `${(1 / maxC) * 100}%`;
+      track.append(fill, goal);
+      const txt = document.createElement('span'); txt.className = 'tj-cbar-txt'; txt.textContent = fmtP(r.cumplimiento_a_fecha);
+      wrap.append(track, txt); c.appendChild(wrap);
+      const e = td(null); const chip = document.createElement('span'); chip.className = 'tj-chip ' + estadoClase(r.cumplimiento_a_fecha); chip.textContent = r.estado; e.appendChild(chip);
+      td(fmtN(r.meta_mes), 'tj-num tj-sec');
+      td(fmtP(r.avance_mes), 'tj-num tj-sec');
+      td(fmtN(r.proyeccion_cierre), 'tj-num tj-sec');
+      const pp = td(fmtP(r.proyeccion_pct), 'tj-num ' + estadoClase(r.proyeccion_pct));
+      pp.style.fontWeight = '600';
+      return tr;
+    }));
+  }
+
+  // ---------- tooltip ----------
+  function tooltip(box) {
+    let tip = box.querySelector('.tj-tip');
+    if (!tip) { tip = document.createElement('div'); tip.className = 'tj-tip'; tip.hidden = true; box.appendChild(tip); }
+    return {
+      show(x, y, head, rows) {
+        tip.replaceChildren();
+        const h = document.createElement('div'); h.className = 'tj-tip-h'; h.textContent = head; tip.appendChild(h);
+        rows.forEach(([kind, name, value]) => {
+          const r = document.createElement('div'); r.className = 'tj-tip-r';
+          if (kind) { const sw = document.createElement('i'); sw.className = 'tj-sw' + (kind === 'meta' ? ' tj-sw-meta' : ''); r.appendChild(sw); }
+          r.appendChild(document.createTextNode(`${name}: `));
+          const b = document.createElement('b'); b.textContent = value; r.appendChild(b);
+          tip.appendChild(r);
+        });
+        tip.hidden = false;
+        const bw = box.clientWidth, tw = tip.offsetWidth;
+        tip.style.left = `${Math.max(0, Math.min(bw - tw, x + 12))}px`;
+        tip.style.top = `${Math.max(0, y - tip.offsetHeight - 8)}px`;
+      },
+      hide() { tip.hidden = true; },
+    };
+  }
+
+  function serieDiaria() {
+    const s = scope();
+    const cal = (st('calendario').data || []).filter((c) => c.fecha.startsWith(s.mes));
+    const nombres = new Set(s.sel.map((r) => r.tecnico));
+    const metaDia = s.sel.reduce((a, r) => a + (r.meta_diaria || 0), 0);
+    const porDia = new Map();
+    for (const r of st('registros').data || []) {
+      if (!r.fecha || !r.fecha.startsWith(s.mes) || !nombres.has(r.tecnico)) continue;
+      if (s.tipo !== 'Todos' && r.tipo !== s.tipo) continue;
+      porDia.set(r.fecha, (porDia.get(r.fecha) || 0) + (r.piezas || 0));
+    }
+    const hoy = hoyISO();
+    let real = 0, meta = 0;
+    const dias = cal.map((c) => {
+      const piezas = porDia.get(c.fecha) || 0;
+      const metaHoy = c.habil ? metaDia : 0;
+      real += piezas; meta += metaHoy;
+      return { fecha: c.fecha, dia: Number(c.fecha.slice(8)), habil: c.habil, festivo: c.festivo, semana: c.dia_semana, piezas, meta: metaHoy, real: c.fecha <= hoy ? real : null, metaAcum: meta };
+    });
+    return { dias, metaDia };
+  }
+  const fechaLarga = (d) => `${d.semana} ${d.dia} de ${MESES[Number(d.fecha.slice(5, 7)) - 1]}`;
+  function textWidth(svg, text) { const t = svg.append('text').attr('font-size', 'var(--cds-font-size-caption)').text(text); const w = t.node().getComputedTextLength(); t.remove(); return w; }
+  function axisY(svg, g, y, ml, xEnd) {
+    const ticks = y.ticks(5);
+    g.selectAll('line.grid').data(ticks).join('line').attr('x1', ml).attr('x2', xEnd).attr('y1', (d) => y(d)).attr('y2', (d) => y(d)).style('stroke', 'var(--cds-chart-grid)');
+    g.selectAll('text.yt').data(ticks).join('text').attr('x', ml - 8).attr('y', (d) => y(d)).attr('dy', '0.32em').attr('text-anchor', 'end').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text((d) => nf.format(d));
+  }
+
+  function drawAcumulado() {
+    const box = $('chart-acumulado');
+    const need = ['registros', 'calendario', 'resumen_tecnico'];
+    if (!allOk(need)) { if (anyFailed(need)) failBox(box); return; }
+    const { dias } = serieDiaria();
+    box.querySelector('svg')?.remove();
+    const W = box.clientWidth || 600, H = 230;
+    const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Piezas acumuladas frente a la meta acumulada por día del mes');
+    const maxY = d3.max(dias, (d) => Math.max(d.real || 0, d.metaAcum)) || 1;
+    const y = d3.scaleLinear([0, maxY], [H - 24, 14]).nice();
+    const ml = Math.ceil(Math.max(...y.ticks(5).map((t) => textWidth(svg, nf.format(t))))) + 10;
+    const x = d3.scaleLinear([1, Math.max(2, dias.length)], [ml, W - 10]);
+    const g = svg.append('g');
+    axisY(svg, g, y, ml, W - 10);
+    const xt = dias.filter((d) => d.dia === 1 || d.dia % 5 === 0 || d.dia === dias.length);
+    g.selectAll('text.xt').data(xt).join('text').attr('x', (d) => x(d.dia)).attr('y', H - 6).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text((d) => d.dia);
+    const hoyD = dias.find((d) => d.fecha === hoyISO());
+    if (hoyD) {
+      g.append('line').attr('x1', x(hoyD.dia)).attr('x2', x(hoyD.dia)).attr('y1', 14).attr('y2', H - 24).style('stroke', 'var(--cds-chart-axis)').attr('stroke-dasharray', '2 3');
+      g.append('text').attr('x', x(hoyD.dia)).attr('y', 10).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text('Hoy');
+    }
+    const reales = dias.filter((d) => d.real != null);
+    const gradId = 'tj-grad-acum';
+    const grad = svg.append('defs').append('linearGradient').attr('id', gradId).attr('x1', 0).attr('x2', 0).attr('y1', 0).attr('y2', 1);
+    [[0, 0.26], [0.25, 0.16], [0.5, 0.08], [0.75, 0.03], [1, 0]].forEach(([o, a]) => grad.append('stop').attr('offset', o).style('stop-color', SERIE).style('stop-opacity', a));
+    g.append('path').datum(reales).style('fill', `url(#${gradId})`).attr('d', d3.area().x((d) => x(d.dia)).y0(y(0)).y1((d) => y(d.real)));
+    g.append('path').datum(dias).style('fill', 'none').style('stroke', CRIMSON).attr('stroke-width', 2).attr('stroke-dasharray', '5 4').attr('d', d3.line().x((d) => x(d.dia)).y((d) => y(d.metaAcum)));
+    g.append('path').datum(reales).style('fill', 'none').style('stroke', SERIE).attr('stroke-width', 2.5).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round').attr('d', d3.line().x((d) => x(d.dia)).y((d) => y(d.real)));
+    const last = reales[reales.length - 1];
+    if (last) g.append('circle').attr('cx', x(last.dia)).attr('cy', y(last.real)).attr('r', 4.5).style('fill', SERIE).style('stroke', 'var(--color-panel)').attr('stroke-width', 2);
+    const tip = tooltip(box);
+    const dot = g.append('circle').attr('r', 4).style('fill', SERIE).attr('opacity', 0);
+    const rule = g.append('line').attr('y1', 14).attr('y2', H - 24).style('stroke', 'var(--cds-chart-axis)').attr('opacity', 0);
+    svg.append('rect').attr('x', ml).attr('y', 0).attr('width', W - ml - 10).attr('height', H).style('fill', 'transparent')
+      .on('mousemove', (ev) => {
+        const [mx] = d3.pointer(ev);
+        const d = dias.find((v) => v.dia === Math.round(x.invert(mx))); if (!d) return;
+        rule.attr('x1', x(d.dia)).attr('x2', x(d.dia)).attr('opacity', 1);
+        if (d.real != null) dot.attr('cx', x(d.dia)).attr('cy', y(d.real)).attr('opacity', 1); else dot.attr('opacity', 0);
+        const k = box.clientWidth / W;
+        tip.show(x(d.dia) * k, y(d.real ?? d.metaAcum) * k, cap(fechaLarga(d)), [['real', 'Acumulado', d.real == null ? '—' : nf.format(d.real)], ['meta', 'Meta acumulada', nf.format(d.metaAcum)]]);
+      })
+      .on('mouseleave', () => { tip.hide(); dot.attr('opacity', 0); rule.attr('opacity', 0); });
+  }
+
+  function drawDiario() {
+    const box = $('chart-diario');
+    const need = ['registros', 'calendario', 'resumen_tecnico'];
+    if (!allOk(need)) { if (anyFailed(need)) failBox(box); return; }
+    const { dias, metaDia } = serieDiaria();
+    box.querySelector('svg')?.remove();
+    const W = box.clientWidth || 600, H = 230;
+    const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Piezas registradas por día con la meta diaria');
+    const maxY = d3.max(dias, (d) => Math.max(d.piezas, d.meta)) || 1;
+    const y = d3.scaleLinear([0, maxY], [H - 24, 10]).nice();
+    const ml = Math.ceil(Math.max(...y.ticks(5).map((t) => textWidth(svg, nf.format(t))))) + 10;
+    const x = d3.scaleBand(dias.map((d) => d.dia), [ml, W - 6]).padding(0.25);
+    const g = svg.append('g');
+    const half = (x.step() * x.paddingInner()) / 2;
+    g.selectAll('rect.nh').data(dias.filter((d) => !d.habil)).join('rect').attr('x', (d) => x(d.dia) - half).attr('width', x.step()).attr('y', 10).attr('height', H - 34).style('fill', 'var(--cds-chart-grid)').attr('opacity', 0.6);
+    axisY(svg, g, y, ml, W - 6);
+    const xt = dias.filter((d) => d.dia === 1 || d.dia % 5 === 0 || d.dia === dias.length);
+    g.selectAll('text.xt').data(xt).join('text').attr('x', (d) => x(d.dia) + x.bandwidth() / 2).attr('y', H - 6).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text((d) => d.dia);
+    g.selectAll('rect.bar').data(dias.filter((d) => d.piezas > 0)).join('rect')
+      .attr('x', (d) => x(d.dia)).attr('width', x.bandwidth()).attr('y', (d) => y(d.piezas)).attr('height', (d) => y(0) - y(d.piezas)).attr('rx', 3)
+      .style('fill', (d) => (d.meta && d.piezas < d.meta ? 'var(--tj-serie-soft)' : SERIE));
+    g.selectAll('line.meta').data(dias.filter((d) => d.meta > 0)).join('line')
+      .attr('x1', (d) => x(d.dia) - 1).attr('x2', (d) => x(d.dia) + x.bandwidth() + 1).attr('y1', (d) => y(d.meta)).attr('y2', (d) => y(d.meta))
+      .style('stroke', CRIMSON).attr('stroke-width', 2);
+    const tip = tooltip(box);
+    g.selectAll('rect.hit').data(dias).join('rect').attr('x', (d) => x(d.dia) - half).attr('width', x.step()).attr('y', 0).attr('height', H - 20).style('fill', 'transparent')
+      .on('mousemove', (ev, d) => {
+        const k = box.clientWidth / W;
+        const rows = [['real', 'Piezas', nf.format(d.piezas)]];
+        if (d.meta) rows.push(['meta', 'Meta', nf.format(d.meta)]);
+        else rows.push([null, d.festivo ? `Festivo (${d.festivo})` : 'Día no hábil', 'sin meta']);
+        tip.show((x(d.dia) + x.bandwidth() / 2) * k, y(Math.max(d.piezas, d.meta)) * k, cap(fechaLarga(d)), rows);
+      })
+      .on('mouseleave', () => tip.hide());
+    if (!metaDia) svg.append('text').attr('x', W / 2).attr('y', 24).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text('Sin meta diaria para esta selección');
+  }
+
+  function drawAreas() {
+    const box = $('chart-areas');
+    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) failBox(box); return; }
+    const s = scope();
+    const tec = (st('resumen_tecnico').data || []).filter((r) => r.mes === s.mes && r.tipo === s.tipo && !s.ex.has(r.tecnico));
+    const filas = [...d3.group(tec, (r) => r.area)].map(([area, rows]) => ({ area, ...total(rows) })).filter((r) => r.con_meta > 0)
+      .sort((a, b) => (b.cumplimiento_a_fecha ?? -1) - (a.cumplimiento_a_fecha ?? -1));
+    box.querySelector('svg')?.remove();
+    box.querySelector('.tj-note')?.remove();
+    if (!filas.length) { box.style.minHeight = ''; box.appendChild(span('Ningún técnico incluido con estos filtros.', 'tj-note')); return; }
+    const W = box.clientWidth || 600, rowH = 32, H = Math.max(60, filas.length * rowH + 26);
+    box.style.minHeight = `${H}px`;
+    const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Cumplimiento a la fecha por área');
+    const ml = Math.ceil(Math.max(40, ...filas.map((r) => textWidth(svg, titleCase(r.area))))) + 12;
+    const mr = Math.ceil(textWidth(svg, '000 %  (0.000 / 0.000)')) + 8;
+    const maxC = Math.max(1.2, d3.max(filas, (r) => r.cumplimiento_a_fecha || 0) || 0);
+    const x = d3.scaleLinear([0, maxC], [ml, Math.max(ml + 40, W - mr)]);
+    const yb = d3.scaleBand(filas.map((r) => r.area), [6, H - 20]).padding(0.3);
+    const g = svg.append('g');
+    [0, 0.5, 1].forEach((t) => {
+      g.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', 4).attr('y2', H - 20).style('stroke', t === 1 ? CRIMSON : 'var(--cds-chart-grid)').attr('stroke-width', t === 1 ? 1.5 : 1).attr('stroke-dasharray', t === 1 ? '4 3' : null);
+      g.append('text').attr('x', x(t)).attr('y', H - 4).attr('text-anchor', 'middle').style('fill', t === 1 ? CRIMSON : 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)').text(t === 1 ? 'Meta' : pf.format(t));
+    });
+    const row = g.selectAll('g.row').data(filas).join('g').attr('class', 'row').style('cursor', 'pointer')
+      .on('click', (ev, d) => dash.setParams({ area: s.area === d.area ? null : d.area, tecnico: null }));
+    row.append('text').attr('x', ml - 10).attr('y', (d) => yb(d.area) + yb.bandwidth() / 2).attr('dy', '0.32em').attr('text-anchor', 'end').style('fill', 'var(--color-fg)').attr('font-size', 'var(--cds-font-size-caption)').attr('font-weight', (d) => (d.area === s.area ? 700 : 400)).text((d) => titleCase(d.area));
+    row.append('rect').attr('x', ml).attr('y', (d) => yb(d.area)).attr('height', yb.bandwidth()).attr('width', (d) => Math.max(0, x(d.cumplimiento_a_fecha || 0) - ml)).attr('rx', 4)
+      .style('fill', (d) => estadoColor(d.cumplimiento_a_fecha)).attr('opacity', (d) => (s.area && d.area !== s.area ? 0.35 : 0.9));
+    row.append('text').attr('x', (d) => x(d.cumplimiento_a_fecha || 0) + 6).attr('y', (d) => yb(d.area) + yb.bandwidth() / 2).attr('dy', '0.32em').style('fill', 'var(--color-fg-muted)').attr('font-size', 'var(--cds-font-size-caption)')
+      .text((d) => `${fmtP(d.cumplimiento_a_fecha)}  (${nf.format(d.piezas)} / ${nf.format(d.meta_a_fecha)})`);
+  }
+
+  function drawRegistros() {
+    const body = $('registros-body');
+    const r = st('registros');
+    if (r.status !== 'ok') { if (anyFailed(['registros'])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 8; failBox(td); } return; }
+    const s = scope();
+    const nombres = new Set(s.sel.map((f) => f.tecnico));
+    const q = $('buscar').value.trim().toLowerCase();
+    const todas = r.data.map((row, i) => ({ row, i }))
+      .filter(({ row }) => row.fecha && row.fecha.startsWith(s.mes) && nombres.has(row.tecnico) && (s.tipo === 'Todos' || row.tipo === s.tipo))
+      .filter(({ row }) => !q || [row.lote, row.producto, row.pieza, row.tecnico, row.area, row.tipo].join(' ').toLowerCase().includes(q))
+      .sort((a, b) => (a.row.fecha < b.row.fecha ? 1 : a.row.fecha > b.row.fecha ? -1 : b.i - a.i));
+    const LIM = 400;
+    const vis = todas.slice(0, LIM);
+    $('registros-nota').textContent = todas.length > LIM
+      ? `Se muestran los ${nf.format(LIM)} registros más recientes de ${nf.format(todas.length)}. Usa la búsqueda o los filtros para acotar.`
+      : `${nf.format(todas.length)} registros en ${mesLabel(s.mes)} con los filtros elegidos, del más reciente al más antiguo.`;
+    body.replaceChildren(...vis.map(({ row }) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = String(row.fila);
+      const td = (t, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = t ?? ''; tr.appendChild(c); };
+      td(row.fecha_hora); td(row.tecnico); td(row.area, 'tj-sec'); td(row.tipo); td(row.lote, 'tj-sec'); td(row.producto, 'tj-wrap'); td(row.pieza, 'tj-sec'); td(row.piezas == null ? '' : nf.format(row.piezas), 'tj-num');
+      return tr;
+    }));
+  }
+
+  let primeraVez = true;
+  dash.onData(() => {
+    drawFilters();
+    drawKpis();
+    drawPromedios();
+    drawTecnicos();
+    drawAcumulado();
+    drawDiario();
+    drawAreas();
+    drawRegistros();
+    if (primeraVez && allOk(['resumen_tecnico'])) {
+      primeraVez = false;
+      const named = location.hash && document.getElementById(location.hash.slice(1));
+      if (named) { named.scrollIntoView(); dash.setLink(named.id); }
+    }
+  });
+})();
+</script>
+</body>
+</html>
