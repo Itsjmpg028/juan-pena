@@ -80,11 +80,14 @@ window.REFRESCO_MIN = 5;
     fire();
   }
   window.addEventListener('resize', fire);
-  window.addEventListener('DOMContentLoaded', () => {
+  const iniciar = () => {
+    if (iniciar.hecho) return; iniciar.hecho = true;
     cargar();
     setInterval(cargar, window.REFRESCO_MIN * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
     const b = document.getElementById('tj-refrescar');
     if (b) b.addEventListener('click', cargar);
-  });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
+  window.addEventListener('load', iniciar);
 })();
