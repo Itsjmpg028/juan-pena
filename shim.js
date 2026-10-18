@@ -20,7 +20,7 @@ window.REFRESCO_MIN = 5;
   const fire = () => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; listeners.forEach((fn) => { try { fn(); } catch (err) { console.error(err); } }); });
+    setTimeout(() => { scheduled = false; listeners.forEach((fn) => { try { fn(); } catch (err) { console.error(err); } }); }, 0);
   };
 
   window.dash = {
