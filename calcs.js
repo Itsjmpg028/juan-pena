@@ -12,6 +12,18 @@
     const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || '').trim());
     return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
   };
+  // Find each column by its header name (accents, spaces and case ignored), so reordering columns in the sheet
+  // does not break the dashboard. Falls back to the usual position if a header is not found.
+  const clave = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9#]/gi, '').toLowerCase();
+  const columnas = (header, mapa) => {
+    const h = header.map(clave);
+    const out = {};
+    for (const [campo, [nombres, defecto]] of Object.entries(mapa)) {
+      const i = h.findIndex((x) => nombres.map(clave).includes(x));
+      out[campo] = i >= 0 ? i : defecto;
+    }
+    return out;
+  };
   const num = (s) => {
     const t = String(s ?? '').trim().replace(/\./g, '').replace(',', '.');
     return t === '' || isNaN(Number(t)) ? null : Number(t);
@@ -21,7 +33,12 @@
     description: 'Las filas de la hoja Registro de PrOD como tabla: fecha pasada a AAAA-MM-DD y # DE PIEZAS a número.',
     fn: ({ answer }) => {
       if (Array.isArray(answer)) return answer; // saved copy: already rows
-      const [, ...rows] = valuesOf(answer);
+      const [header = [], ...rows] = valuesOf(answer);
+      const k = columnas(header, {
+        id: [['ID_REG'], 0], fecha: [['FECHA'], 1], fecha_hora: [['FECHA HORA'], 2], tecnico: [['TÉCNICO', 'TECNICO'], 3],
+        area: [['ÁREA', 'AREA'], 4], lote: [['Lote'], 5], producto: [['PRODUCTO'], 6], pieza: [['PIEZA O MODULO'], 7],
+        tipo: [['TIPO DE SERVICIO'], 8], piezas: [['# DE PIEZAS', 'PIEZAS'], 9],
+      });
       return {
         columns: ['fila', 'id', 'fecha', 'fecha_hora', 'tecnico', 'area', 'lote', 'producto', 'pieza', 'tipo', 'piezas'],
         rows: rows
@@ -29,16 +46,16 @@
           .filter(([, r]) => r.some((c) => String(c).trim() !== ''))
           .map(([fila, r]) => ({
             fila,
-            id: r[0] ?? '',
-            fecha: isoDate(r[1]),
-            fecha_hora: r[2] ?? '',
-            tecnico: String(r[3] ?? '').trim(),
-            area: String(r[4] ?? '').trim(),
-            lote: r[5] ?? '',
-            producto: r[6] ?? '',
-            pieza: r[7] ?? '',
-            tipo: String(r[8] ?? '').trim(),
-            piezas: num(r[9]),
+            id: r[k.id] ?? '',
+            fecha: isoDate(r[k.fecha]),
+            fecha_hora: r[k.fecha_hora] ?? '',
+            tecnico: String(r[k.tecnico] ?? '').trim(),
+            area: String(r[k.area] ?? '').trim(),
+            lote: r[k.lote] ?? '',
+            producto: r[k.producto] ?? '',
+            pieza: r[k.pieza] ?? '',
+            tipo: String(r[k.tipo] ?? '').trim(),
+            piezas: num(r[k.piezas]),
           })),
       };
     },
@@ -48,17 +65,21 @@
     description: 'Las filas de la hoja Tecnico como tabla: metas diarias (piezas y lotes) a número y Activo (VERDADERO/FALSO) a sí/no.',
     fn: ({ answer }) => {
       if (Array.isArray(answer)) return answer; // saved copy: already rows
-      const [, ...rows] = valuesOf(answer);
+      const [header = [], ...rows] = valuesOf(answer);
+      const k = columnas(header, {
+        tecnico: [['TECNICOS', 'TECNICO'], 0], area: [['ÁREA', 'AREA'], 1], meta_diaria: [['Meta_Diaria_Piezas'], 2],
+        meta_lotes: [['Meta_Diaria_Lotes'], 3], activo: [['Activo'], 4],
+      });
       return {
         columns: ['tecnico', 'area', 'meta_diaria', 'activo', 'meta_lotes'],
         rows: rows
-          .filter((r) => String(r[0] ?? '').trim() !== '')
+          .filter((r) => String(r[k.tecnico] ?? '').trim() !== '')
           .map((r) => ({
-            tecnico: String(r[0]).trim(),
-            area: String(r[1] ?? '').trim(),
-            meta_diaria: num(r[2]),
-            activo: /^(verdadero|true|s[ií]|y|yes)$/i.test(String(r[3] ?? '').trim()),
-            meta_lotes: num(r[4]),
+            tecnico: String(r[k.tecnico]).trim(),
+            area: String(r[k.area] ?? '').trim(),
+            meta_diaria: num(r[k.meta_diaria]),
+            activo: /^(verdadero|true|s[ií]|y|yes)$/i.test(String(r[k.activo] ?? '').trim()),
+            meta_lotes: num(r[k.meta_lotes]),
           })),
       };
     },
@@ -68,16 +89,19 @@
     description: 'Las filas de la hoja Calendario como tabla: fecha pasada a AAAA-MM-DD y Es_Habil a sí/no.',
     fn: ({ answer }) => {
       if (Array.isArray(answer)) return answer; // saved copy: already rows
-      const [, ...rows] = valuesOf(answer);
+      const [header = [], ...rows] = valuesOf(answer);
+      const k = columnas(header, {
+        fecha: [['Fecha'], 0], dia_semana: [['Dia_Semana'], 3], festivo: [['Nombre_Festivo'], 6], habil: [['Es_Habil'], 7],
+      });
       return {
         columns: ['fecha', 'dia_semana', 'festivo', 'habil'],
         rows: rows
-          .filter((r) => isoDate(r[0]))
+          .filter((r) => isoDate(r[k.fecha]))
           .map((r) => ({
-            fecha: isoDate(r[0]),
-            dia_semana: r[3] ?? '',
-            festivo: r[6] ?? '',
-            habil: /^(verdadero|true)$/i.test(String(r[7] ?? '').trim()),
+            fecha: isoDate(r[k.fecha]),
+            dia_semana: r[k.dia_semana] ?? '',
+            festivo: r[k.festivo] ?? '',
+            habil: /^(verdadero|true)$/i.test(String(r[k.habil] ?? '').trim()),
           })),
       };
     },
