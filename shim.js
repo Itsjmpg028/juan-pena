@@ -10,12 +10,12 @@ window.REFRESCO_MIN = 5;
 // conversiones y cálculos de calcs.js, guarda los filtros y redibuja.
 (function () {
   const loaders = {}, calcs = {}, store = {}, listeners = [];
-  const DEFAULTS = { mes: null, area: null, tecnico: null, tipo: 'Todos', excluidos: [] };
+  const DEFAULTS = { medida: 'piezas', mes: null, area: null, tecnico: null, tipo: 'Todos', excluidos: [] };
   let params = { ...DEFAULTS };
   try { const saved = JSON.parse(localStorage.getItem('tj-filtros') || 'null'); if (saved) params = { ...DEFAULTS, ...saved }; } catch (e) { /* sin almacenamiento */ }
   delete params.mes; delete params.tecnico; params = { ...DEFAULTS, ...params };
-  // Se recuerdan área, tipo y técnicos quitados; el mes siempre abre en el actual.
-  const save = () => { try { const { area, tipo, excluidos } = params; localStorage.setItem('tj-filtros', JSON.stringify({ area, tipo, excluidos })); } catch (e) { /* sin almacenamiento */ } };
+  // Se recuerdan medida, área, tipo y técnicos quitados; el mes siempre abre en el actual.
+  const save = () => { try { const { medida, area, tipo, excluidos } = params; localStorage.setItem('tj-filtros', JSON.stringify({ medida, area, tipo, excluidos })); } catch (e) { /* sin almacenamiento */ } };
   let scheduled = false;
   const fire = () => {
     if (scheduled) return;

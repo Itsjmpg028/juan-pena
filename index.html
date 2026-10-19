@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard de seguimiento taller</title>
-<meta name="description" content="Cumplimiento de piezas por técnico y área del taller de reacondicionamiento.">
+<meta name="description" content="Cumplimiento de piezas y lotes por técnico y área del taller de reacondicionamiento.">
 <meta name="theme-color" content="#1F2937">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="tokens.css?v=3">
+<link rel="stylesheet" href="tokens.css?v=4">
 <style>
   /* Jamar: carmesí #D2132C, carbón #1F2937, blanco. Carbón para la marca y los datos; carmesí para la meta y lo seleccionado. */
   .tj {
@@ -53,6 +53,8 @@
   .tj-seg button { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
   .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
   .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+  .tj-seg-medida button[aria-pressed="true"] { background: var(--tj-crimson); }
+  .tj-lote-ok { color: var(--color-ok); } .tj-lote-rep { color: var(--color-bad); font-weight: 600; } .tj-lote-rev { color: var(--color-warn); }
   .tj-reset { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: transparent; color: var(--color-fg); cursor: pointer; }
   .tj-picked { font: inherit; font-size: var(--cds-font-size-caption); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--tj-crimson); background: var(--tj-crimson-soft); color: var(--color-fg); cursor: pointer; }
 
@@ -151,6 +153,12 @@
   </header>
 
   <div class="tj-filters" id="filtros">
+    <div class="tj-field">Medir por
+      <div class="tj-seg tj-seg-medida" id="f-medida" role="group" aria-label="Medir por">
+        <button type="button" data-medida="piezas" aria-pressed="true">Piezas</button>
+        <button type="button" data-medida="lotes" aria-pressed="false">Lotes</button>
+      </div>
+    </div>
     <label class="tj-field" for="f-mes">Mes
       <select id="f-mes" data-source="resumen_tecnico"></select>
     </label>
@@ -184,7 +192,7 @@
       <span class="tj-kpi-sub" id="k1s"></span>
     </div>
     <div class="tj-kpi" id="kpi-piezas">
-      <span class="tj-kpi-label">Piezas producidas</span>
+      <span class="tj-kpi-label" id="k2l">Piezas producidas</span>
       <span class="tj-kpi-value dash-skeleton" id="k2">—</span>
       <span class="tj-kpi-sub" id="k2s"></span>
     </div>
@@ -210,11 +218,12 @@
       <span class="tj-kpi-sub" id="k5s"></span>
     </div>
   </section>
+  <p class="tj-note" id="regla-lotes" hidden>Regla de lotes: un lote cuenta una sola vez por área y tipo de servicio (lo gana el primer registro); un nuevo registro del mismo lote en esa área y tipo sale como "Repetido" y no suma. Los códigos 101 y 102 se pueden repetir y cada registro suma 1. Un valor que no es un lote de 6 a 8 dígitos (CP, x, 5s…) suma 1 y sale como "Lote por revisar". Meta diaria de lotes: columna Meta_Diaria_Lotes de la hoja Tecnico.</p>
   <p class="tj-note" id="definiciones">Meta a la fecha = meta diaria × días hábiles del mes transcurridos, incluido hoy. Promedio diario = piezas ÷ días hábiles transcurridos. Estado: Cumple desde 100 %, Cerca entre 85 % y 99 %, Bajo por debajo de 85 %. Las piezas de sábados y festivos suman, pero esos días no agregan meta. Con un tipo de servicio elegido, las piezas se comparan con la meta completa del técnico.</p>
 
   <section class="tj-card" id="promedios">
     <div class="tj-section-h">
-      <h2>Promedio actual de piezas por día</h2>
+      <h2 id="promedios-titulo">Promedio actual de piezas por día</h2>
       <span class="tj-note">Por área y por técnico, frente a su meta diaria. Haz clic en un técnico para verlo solo.</span>
     </div>
     <div class="tj-avg" id="avg-cards" data-source="resumen_tecnico"></div>
@@ -224,15 +233,15 @@
     <div class="tj-card" id="card-acumulado">
       <h2>Acumulado del mes frente a la meta</h2>
       <div class="tj-legend">
-        <span><i class="tj-sw"></i>Piezas acumuladas</span>
+        <span><i class="tj-sw"></i><span id="lg-acum">Piezas acumuladas</span></span>
         <span><i class="tj-sw tj-sw-meta"></i>Meta acumulada</span>
       </div>
       <div class="tj-chart" id="chart-acumulado" data-source="registros calendario resumen_tecnico"></div>
     </div>
     <div class="tj-card" id="card-diario">
-      <h2>Piezas por día</h2>
+      <h2 id="diario-titulo">Piezas por día</h2>
       <div class="tj-legend">
-        <span><i class="tj-sw tj-sw-box"></i>Piezas del día</span>
+        <span><i class="tj-sw tj-sw-box"></i><span id="lg-dia">Piezas del día</span></span>
         <span><i class="tj-sw tj-sw-meta"></i>Meta diaria</span>
       </div>
       <div class="tj-chart" id="chart-diario" data-source="registros calendario resumen_tecnico"></div>
@@ -249,7 +258,7 @@
           <th data-field="area" class="tj-sec"><button type="button" data-sort="area">Área</button></th>
           <th data-field="meta_diaria" class="tj-num tj-sec"><button type="button" data-sort="meta_diaria">Meta diaria</button></th>
           <th data-field="promedio_habil" class="tj-num"><button type="button" data-sort="promedio_habil">Prom. diario</button></th>
-          <th data-field="piezas" class="tj-num"><button type="button" data-sort="piezas">Piezas</button></th>
+          <th data-field="piezas" class="tj-num"><button type="button" data-sort="piezas" id="th-cantidad">Piezas</button></th>
           <th data-field="meta_a_fecha" class="tj-num tj-sec"><button type="button" data-sort="meta_a_fecha">Meta a la fecha</button></th>
           <th data-field="cumplimiento_a_fecha"><button type="button" data-sort="cumplimiento_a_fecha">Cumplimiento</button></th>
           <th data-field="estado"><button type="button" data-sort="estado">Estado</button></th>
@@ -265,7 +274,7 @@
 
   <section class="tj-card" id="card-areas">
     <h2>Cumplimiento por área</h2>
-    <p class="tj-note">Piezas del área sobre la suma de las metas a la fecha de sus técnicos incluidos. Haz clic en una barra para filtrar el área.</p>
+    <p class="tj-note" id="areas-nota">Piezas del área sobre la suma de las metas a la fecha de sus técnicos incluidos. Haz clic en una barra para filtrar el área.</p>
     <div class="tj-bars" id="chart-areas" data-source="resumen_tecnico"></div>
   </section>
 
@@ -286,6 +295,7 @@
           <th data-field="producto">Producto</th>
           <th data-field="pieza" class="tj-sec">Pieza o módulo</th>
           <th data-field="piezas" class="tj-num">Piezas</th>
+          <th data-field="estado_lote" id="th-estado-lote" hidden>Lote</th>
         </tr></thead>
         <tbody id="registros-body"></tbody>
       </table>
@@ -295,13 +305,13 @@
 
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="shim.js?v=3"></script>
-<script src="calcs.js?v=3"></script>
+<script src="shim.js?v=4"></script>
+<script src="calcs.js?v=4"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const nf = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+  const nf = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
   const nf1 = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
   const pf = new Intl.NumberFormat('es-CO', { style: 'percent', maximumFractionDigits: 0 });
   const fmtN = (x) => (x == null ? '—' : nf.format(x));
@@ -316,13 +326,20 @@
   const estadoClase = (c) => (c == null ? 'tj-muted' : c >= 1 ? 'tj-ok' : c >= 0.85 ? 'tj-warn' : 'tj-bad');
   const estadoColor = (c) => (c == null ? 'var(--cds-chart-muted)' : c >= 1 ? 'var(--color-ok)' : c >= 0.85 ? 'var(--color-warn)' : 'var(--color-bad)');
   const CRIMSON = 'var(--tj-crimson)';
+  // Medida: piezas (meta en piezas) o lotes (regla de un lote por área y tipo; meta en lotes).
+  const MEDIDAS = {
+    piezas: { src: 'resumen_tecnico', reg: 'registros', valor: (r) => r.piezas || 0, u: 'piezas', U: 'Piezas' },
+    lotes: { src: 'resumen_lotes', reg: 'registros_lotes', valor: (r) => r.cuenta_lote || 0, u: 'lotes', U: 'Lotes' },
+  };
+  const M = () => MEDIDAS[dash.params().medida] || MEDIDAS.piezas;
+  document.querySelectorAll('#f-medida button').forEach((b) => b.addEventListener('click', () => dash.setParams({ medida: b.dataset.medida })));
   const SERIE = 'var(--tj-serie)';
 
   // ---------- filters ----------
   const setDefaults = () => dash.setParams({ mes: hoyISO().slice(0, 7), tipo: 'Todos' });
   if (!dash.params().mes) setDefaults();
   const excluidos = () => new Set(dash.params().excluidos || []);
-  $('f-reset').addEventListener('click', () => { dash.resetParams(); setDefaults(); });
+  $('f-reset').addEventListener('click', () => { const medida = dash.params().medida; dash.resetParams(); setDefaults(); dash.setParams({ medida }); });
   $('f-mes').addEventListener('change', (e) => dash.setParams({ mes: e.target.value }));
   $('f-area').addEventListener('change', (e) => dash.setParams({ area: e.target.value || null, tecnico: null }));
   $('picked').addEventListener('click', () => dash.setParams({ tecnico: null }));
@@ -365,7 +382,7 @@
   const anyFailed = (ids) => ids.some((id) => ['error', 'connect', 'declined', 'missing'].includes(st(id).status));
   function failBox(el) { el.replaceChildren(); const d = document.createElement('div'); d.className = 'tj-failed'; d.textContent = 'No se pudo cargar'; el.appendChild(d); }
   function mark(el, field, w) {
-    el.setAttribute('data-source', 'resumen_tecnico');
+    el.setAttribute('data-source', M().src);
     el.setAttribute('data-field', field);
     el.setAttribute('data-where', where(w));
   }
@@ -378,7 +395,7 @@
     const mes = p.mes || hoyISO().slice(0, 7);
     const tipo = p.tipo || 'Todos';
     const ex = new Set(p.excluidos || []);
-    const tec = st('resumen_tecnico').data || [];
+    const tec = st(M().src).data || [];
     const filasArea = tec.filter((r) => r.mes === mes && r.tipo === tipo && (!p.area || r.area === p.area));
     const filas = filasArea.filter((r) => !ex.has(r.tecnico));
     const tecnico = p.tecnico && filas.some((r) => r.tecnico === p.tecnico) ? p.tecnico : null;
@@ -406,7 +423,7 @@
 
   function drawFilters() {
     const p = dash.params();
-    const tec = st('resumen_tecnico');
+    const tec = st(M().src);
     if (tec.status === 'ok') {
       const meses = [...new Set(tec.data.map((r) => r.mes))].sort().reverse();
       $('f-mes').replaceChildren(...meses.map((m) => new Option(cap(mesLabel(m)), m)));
@@ -465,8 +482,8 @@
   // ---------- headline + KPIs ----------
   function drawKpis() {
     const ids = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'];
-    if (st('resumen_tecnico').status !== 'ok') {
-      if (anyFailed(['resumen_tecnico'])) {
+    if (st(M().src).status !== 'ok') {
+      if (anyFailed([M().src])) {
         ids.forEach((id) => { const el = $(id); el.classList.remove('dash-skeleton'); el.replaceChildren(span('No se pudo cargar', 'tj-failed')); });
         $('resumen').replaceChildren();
       }
@@ -489,21 +506,21 @@
     }
     val('k1', 'cumplimiento_a_fecha', fmtP(row.cumplimiento_a_fecha), estadoClase(row.cumplimiento_a_fecha));
     meter('k1m', row.cumplimiento_a_fecha);
-    $('k1s').replaceChildren(ms('piezas', fmtN(row.piezas)), span(' de '), ms('meta_a_fecha', fmtN(row.meta_a_fecha)), span(' piezas esperadas'));
+    $('k1s').replaceChildren(ms('piezas', fmtN(row.piezas)), span(' de '), ms('meta_a_fecha', fmtN(row.meta_a_fecha)), span(` ${M().u} esperad${M().u === 'piezas' ? 'as' : 'os'}`));
     val('k2', 'piezas', fmtN(row.piezas));
     $('k2s').replaceChildren(span('Día hábil '), ms('dias_habiles_a_fecha', fmtN(row.dias_habiles_a_fecha)), span(' de '), ms('dias_habiles_mes', fmtN(row.dias_habiles_mes)));
     const ritmo = row.meta_diaria ? row.promedio_habil / row.meta_diaria : null;
     val('k6', 'promedio_habil', fmt1(row.promedio_habil), estadoClase(ritmo));
-    $('k6s').replaceChildren(span('piezas por día hábil · meta '), ms('meta_diaria', fmtN(row.meta_diaria)));
+    $('k6s').replaceChildren(span(`${M().u} por día hábil · meta `), ms('meta_diaria', fmtN(row.meta_diaria)));
     val('k3', 'avance_mes', fmtP(row.avance_mes));
     meter('k3m', row.avance_mes);
     $('k3s').replaceChildren(span('Meta del mes: '), ms('meta_mes', fmtN(row.meta_mes)));
     val('k4', 'proyeccion_cierre', fmtN(row.proyeccion_cierre), estadoClase(row.meta_mes ? row.proyeccion_cierre / row.meta_mes : null));
-    $('k4s').replaceChildren(span('piezas al ritmo actual, frente a '), ms('meta_mes', fmtN(row.meta_mes)));
+    $('k4s').replaceChildren(span(`${M().u} al ritmo actual, frente a `), ms('meta_mes', fmtN(row.meta_mes)));
     if (uno) {
       $('k5l').textContent = 'Días con registro';
       val('k5', 'dias_con_registro', fmtN(uno.dias_con_registro));
-      $('k5s').replaceChildren(ms('promedio_diario', fmt1(uno.promedio_diario)), span(' piezas por día con registro'));
+      $('k5s').replaceChildren(ms('promedio_diario', fmt1(uno.promedio_diario)), span(` ${M().u} por día con registro`));
     } else {
       $('k5l').textContent = 'Técnicos bajo 85 %';
       val('k5', 'bajo', fmtN(row.bajo), row.bajo > 0 ? 'tj-bad' : 'tj-ok');
@@ -520,7 +537,7 @@
       ms('piezas', fmtN(row.piezas)),
       span(' de '),
       ms('meta_a_fecha', fmtN(row.meta_a_fecha)),
-      span(' piezas y un promedio de '),
+      span(` ${M().u} y un promedio de `),
       ms('promedio_habil', fmt1(row.promedio_habil)),
       span(' por día hábil.'),
     ];
@@ -535,7 +552,7 @@
   // ---------- averages by area and technician ----------
   function drawPromedios() {
     const box = $('avg-cards');
-    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) failBox(box); return; }
+    if (st(M().src).status !== 'ok') { if (anyFailed([M().src])) failBox(box); return; }
     const s = scope();
     const porArea = [...d3.group(s.filas, (r) => r.area)]
       .map(([area, rows]) => ({ area, rows, t: total(rows) }))
@@ -548,7 +565,7 @@
       const top = document.createElement('div'); top.className = 'tj-avg-top';
       top.append(span(titleCase(area), 'tj-avg-area'), span(ritmo == null ? 'sin meta' : `${fmtP(ritmo)} de la meta`, 'tj-avg-pct ' + estadoClase(ritmo)));
       const big = document.createElement('div'); big.className = 'tj-avg-big';
-      big.append(span(fmt1(t.promedio_habil), 'tj-num-big'), span(`piezas/día · meta ${fmtN(t.meta_diaria)} · ${nf.format(rows.length)} ${rows.length === 1 ? 'técnico' : 'técnicos'}`, 'tj-unit'));
+      big.append(span(fmt1(t.promedio_habil), 'tj-num-big'), span(`${M().u}/día · meta ${fmtN(t.meta_diaria)} · ${nf.format(rows.length)} ${rows.length === 1 ? 'técnico' : 'técnicos'}`, 'tj-unit'));
       const m = document.createElement('div'); m.className = 'tj-meter'; m.innerHTML = '<div class="tj-meter-fill"></div><div class="tj-meter-goal"></div>';
       const maxA = Math.max(1.2, ritmo || 0);
       m.firstChild.style.width = `${Math.min(100, ((ritmo || 0) / maxA) * 100)}%`; m.firstChild.style.background = estadoColor(ritmo); m.lastChild.style.left = `${(1 / maxA) * 100}%`;
@@ -578,7 +595,7 @@
   // ---------- technician table ----------
   function drawTecnicos() {
     const body = $('tecnicos-body');
-    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 11; failBox(td); } return; }
+    if (st(M().src).status !== 'ok') { if (anyFailed([M().src])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 11; failBox(td); } return; }
     const s = scope();
     const filas = [...s.filas].sort((a, b) => {
       const x = a[sortKey], y = b[sortKey];
@@ -653,10 +670,10 @@
     const nombres = new Set(s.sel.map((r) => r.tecnico));
     const metaDia = s.sel.reduce((a, r) => a + (r.meta_diaria || 0), 0);
     const porDia = new Map();
-    for (const r of st('registros').data || []) {
+    for (const r of st(M().reg).data || []) {
       if (!r.fecha || !r.fecha.startsWith(s.mes) || !nombres.has(r.tecnico)) continue;
       if (s.tipo !== 'Todos' && r.tipo !== s.tipo) continue;
-      porDia.set(r.fecha, (porDia.get(r.fecha) || 0) + (r.piezas || 0));
+      porDia.set(r.fecha, (porDia.get(r.fecha) || 0) + M().valor(r));
     }
     const hoy = hoyISO();
     let real = 0, meta = 0;
@@ -678,7 +695,7 @@
 
   function drawAcumulado() {
     const box = $('chart-acumulado');
-    const need = ['registros', 'calendario', 'resumen_tecnico'];
+    const need = [M().reg, 'calendario', M().src];
     if (!allOk(need)) { if (anyFailed(need)) failBox(box); return; }
     const { dias } = serieDiaria();
     box.querySelector('svg')?.remove();
@@ -723,7 +740,7 @@
 
   function drawDiario() {
     const box = $('chart-diario');
-    const need = ['registros', 'calendario', 'resumen_tecnico'];
+    const need = [M().reg, 'calendario', M().src];
     if (!allOk(need)) { if (anyFailed(need)) failBox(box); return; }
     const { dias, metaDia } = serieDiaria();
     box.querySelector('svg')?.remove();
@@ -749,7 +766,7 @@
     g.selectAll('rect.hit').data(dias).join('rect').attr('x', (d) => x(d.dia) - half).attr('width', x.step()).attr('y', 0).attr('height', H - 20).style('fill', 'transparent')
       .on('mousemove', (ev, d) => {
         const k = box.clientWidth / W;
-        const rows = [['real', 'Piezas', nf.format(d.piezas)]];
+        const rows = [['real', M().U, nf.format(d.piezas)]];
         if (d.meta) rows.push(['meta', 'Meta', nf.format(d.meta)]);
         else rows.push([null, d.festivo ? `Festivo (${d.festivo})` : 'Día no hábil', 'sin meta']);
         tip.show((x(d.dia) + x.bandwidth() / 2) * k, y(Math.max(d.piezas, d.meta)) * k, cap(fechaLarga(d)), rows);
@@ -760,9 +777,9 @@
 
   function drawAreas() {
     const box = $('chart-areas');
-    if (st('resumen_tecnico').status !== 'ok') { if (anyFailed(['resumen_tecnico'])) failBox(box); return; }
+    if (st(M().src).status !== 'ok') { if (anyFailed([M().src])) failBox(box); return; }
     const s = scope();
-    const tec = (st('resumen_tecnico').data || []).filter((r) => r.mes === s.mes && r.tipo === s.tipo && !s.ex.has(r.tecnico));
+    const tec = (st(M().src).data || []).filter((r) => r.mes === s.mes && r.tipo === s.tipo && !s.ex.has(r.tecnico));
     const filas = [...d3.group(tec, (r) => r.area)].map(([area, rows]) => ({ area, ...total(rows) })).filter((r) => r.con_meta > 0)
       .sort((a, b) => (b.cumplimiento_a_fecha ?? -1) - (a.cumplimiento_a_fecha ?? -1));
     box.querySelector('svg')?.remove();
@@ -792,14 +809,17 @@
 
   function drawRegistros() {
     const body = $('registros-body');
-    const r = st('registros');
-    if (r.status !== 'ok') { if (anyFailed(['registros'])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 8; failBox(td); } return; }
+    const lotes = M().u === 'lotes';
+    const r = st(M().reg);
+    $('tabla-registros').setAttribute('data-source', M().reg);
+    $('th-estado-lote').hidden = !lotes;
+    if (r.status !== 'ok') { if (anyFailed([M().reg])) { body.replaceChildren(); const td = body.insertRow().insertCell(); td.colSpan = 9; failBox(td); } return; }
     const s = scope();
     const nombres = new Set(s.sel.map((f) => f.tecnico));
     const q = $('buscar').value.trim().toLowerCase();
     const todas = r.data.map((row, i) => ({ row, i }))
       .filter(({ row }) => row.fecha && row.fecha.startsWith(s.mes) && nombres.has(row.tecnico) && (s.tipo === 'Todos' || row.tipo === s.tipo))
-      .filter(({ row }) => !q || [row.lote, row.producto, row.pieza, row.tecnico, row.area, row.tipo].join(' ').toLowerCase().includes(q))
+      .filter(({ row }) => !q || [row.lote, row.producto, row.pieza, row.tecnico, row.area, row.tipo, row.estado_lote || ''].join(' ').toLowerCase().includes(q))
       .sort((a, b) => (a.row.fecha < b.row.fecha ? 1 : a.row.fecha > b.row.fecha ? -1 : b.i - a.i));
     const LIM = 400;
     const vis = todas.slice(0, LIM);
@@ -811,12 +831,30 @@
       tr.dataset.key = String(row.fila);
       const td = (t, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = t ?? ''; tr.appendChild(c); };
       td(row.fecha_hora); td(row.tecnico); td(row.area, 'tj-sec'); td(row.tipo); td(row.lote, 'tj-sec'); td(row.producto, 'tj-wrap'); td(row.pieza, 'tj-sec'); td(row.piezas == null ? '' : nf.format(row.piezas), 'tj-num');
+      if (lotes) td(row.estado_lote, row.estado_lote === 'Cuenta' || row.estado_lote === 'Repetible (101/102)' ? 'tj-lote-ok' : row.estado_lote === 'Repetido' ? 'tj-lote-rep' : 'tj-lote-rev');
       return tr;
     }));
   }
 
+  function drawLabels() {
+    const m = M();
+    document.querySelectorAll('#f-medida button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.medida === m.u)));
+    $('k2l').textContent = m.u === 'lotes' ? 'Lotes trabajados' : 'Piezas producidas';
+    $('promedios-titulo').textContent = `Promedio actual de ${m.u} por día`;
+    $('lg-acum').textContent = `${m.U} acumulad${m.u === 'piezas' ? 'as' : 'os'}`;
+    $('diario-titulo').textContent = `${m.U} por día`;
+    $('lg-dia').textContent = `${m.U} del día`;
+    $('th-cantidad').textContent = m.U;
+    $('areas-nota').textContent = `${m.U} del área sobre la suma de las metas a la fecha de sus técnicos incluidos. Haz clic en una barra para filtrar el área.`;
+    $('regla-lotes').hidden = m.u !== 'lotes';
+    $('definiciones').textContent = `Meta a la fecha = meta diaria de ${m.u} × días hábiles del mes transcurridos, incluido hoy. Promedio diario = ${m.u} ÷ días hábiles transcurridos. Estado: Cumple desde 100 %, Cerca entre 85 % y 99 %, Bajo por debajo de 85 %. Lo registrado en sábados y festivos suma, pero esos días no agregan meta. Con un tipo de servicio elegido, se compara con la meta completa del técnico.`;
+    ['indicadores', 'resumen', 'avg-cards', 'tabla-tecnicos', 'chart-areas', 'f-mes', 'f-tecnicos-lista'].forEach((id) => $(id).setAttribute('data-source', m.src));
+    ['chart-acumulado', 'chart-diario'].forEach((id) => $(id).setAttribute('data-source', `${m.reg} calendario ${m.src}`));
+  }
+
   let primeraVez = true;
   dash.onData(() => {
+    drawLabels();
     drawFilters();
     drawKpis();
     drawPromedios();
@@ -825,7 +863,7 @@
     drawDiario();
     drawAreas();
     drawRegistros();
-    if (primeraVez && allOk(['resumen_tecnico'])) {
+    if (primeraVez && allOk([M().src])) {
       primeraVez = false;
       const named = location.hash && document.getElementById(location.hash.slice(1));
       if (named) { named.scrollIntoView(); dash.setLink(named.id); }
