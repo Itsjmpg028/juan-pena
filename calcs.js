@@ -171,7 +171,6 @@
             promedio_habil: h.aFecha ? r2(a.piezas / h.aFecha, 1) : null,
             promedio_diario: a.dias.size ? r2(a.piezas / a.dias.size, 1) : 0,
             proyeccion_cierre: h.aFecha ? Math.round((a.piezas / h.aFecha) * h.total) : null,
-            proyeccion_pct: h.aFecha && metaMes ? r2(((a.piezas / h.aFecha) * h.total) / metaMes, 4) : null,
             estado: cumpl == null ? 'Sin meta' : cumpl >= 1 ? 'Cumple' : cumpl >= 0.85 ? 'Cerca' : 'Bajo',
           });
         }

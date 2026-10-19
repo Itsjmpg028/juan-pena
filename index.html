@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="tokens.css?v=4">
+<link rel="stylesheet" href="tokens.css?v=5">
 <style>
   /* Jamar: carmesí #D2132C, carbón #1F2937, blanco. Carbón para la marca y los datos; carmesí para la meta y lo seleccionado. */
   .tj {
@@ -265,7 +265,6 @@
           <th data-field="meta_mes" class="tj-num tj-sec"><button type="button" data-sort="meta_mes">Meta del mes</button></th>
           <th data-field="avance_mes" class="tj-num tj-sec"><button type="button" data-sort="avance_mes">Avance mes</button></th>
           <th data-field="proyeccion_cierre" class="tj-num tj-sec"><button type="button" data-sort="proyeccion_cierre">Proyección</button></th>
-          <th data-field="proyeccion_pct" class="tj-num"><button type="button" data-sort="proyeccion_pct">Proyección %</button></th>
         </tr></thead>
         <tbody id="tecnicos-body"></tbody>
       </table>
@@ -305,8 +304,8 @@
 
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="shim.js?v=4"></script>
-<script src="calcs.js?v=4"></script>
+<script src="shim.js?v=5"></script>
+<script src="calcs.js?v=5"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -634,8 +633,6 @@
       td(fmtN(r.meta_mes), 'tj-num tj-sec');
       td(fmtP(r.avance_mes), 'tj-num tj-sec');
       td(fmtN(r.proyeccion_cierre), 'tj-num tj-sec');
-      const pp = td(fmtP(r.proyeccion_pct), 'tj-num ' + estadoClase(r.proyeccion_pct));
-      pp.style.fontWeight = '600';
       return tr;
     }));
   }
