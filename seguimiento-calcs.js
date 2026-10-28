@@ -215,7 +215,7 @@
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
         estado = celdas.emp.estado === 'azul' || completas ? 'Por inspeccionar' : 'En proceso';
-      } else if (D && D.asignacion === 'PROVEEDOR') estado = 'En proveedor';
+      } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Sin enviar a proveedor'; // determinado a proveedor, sin movimiento 161
       else estado = 'Por iniciar';
 
       const fin = aprobado ? insp.fecha : null;
@@ -256,6 +256,8 @@
         traslado,
         salida_mov: salida ? salida.mov : null,
         envio_prov: envioProv,
+        // Determinado a proveedor pero sin movimiento 161 (todavía no se ha enviado).
+        sin_envio_prov: !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && !salida),
         movs,
         listo,
         d_listo_salida: dListoSalida,

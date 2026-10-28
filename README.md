@@ -33,7 +33,7 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Determinación (hoja *Determinación*, solo lotes del taller 2000): TALLER → "Taller plataforma", PROVEEDOR → "Taller proveedor", PRODUCTO IMPORTADO → "Importado". Lotes del taller que no están en la hoja: "Taller sin determinación". Todo lote de Determinación se sigue aunque no tenga registros; si es de proveedor y no tiene registros ni inspección, su estado es "En proveedor".
 - Picking (FECHA DE PICKING): el lote cuenta como listo para el picking con lo primero que ocurra entre inspección APROBADO y empaque registrado. Alertas: Vencido, Vence hoy, En 1–2 días; si ya está listo: A tiempo o Listo tarde (con el motivo). Los picking anteriores al 26/10/2026 (inicio de la inspección) no generan alerta.
 - Movimientos (hoja *Traslados*, copia por fórmula de Lote, fecha, centro y clase de movimiento de *Salidas 939*), desde el ingreso del lote:
-  - 161 = envío a proveedor: estado "En proveedor · desde dd/mm" hasta que haya un registro de trabajo posterior.
+  - 161 = envío a proveedor: estado "En proveedor · desde dd/mm" hasta que haya un registro de trabajo posterior. Lote con determinación PROVEEDOR sin 161: "Sin enviar a proveedor" (si ya tiene registros, conserva su estado con la nota "Sin envío a proveedor (161)").
   - 601 = entrega al cliente (taller): estado "Entregado" con la fecha.
   - 939 = traslado (venta): estado "Trasladado" con la fecha.
 - Última columna "Listo → salida": días desde que el lote quedó listo (inspección APROBADO; si no hay, primer empaque) hasta la primera salida 601 o 939. Si sigue en la plataforma, se cuenta hasta hoy (en cursiva). Tarjeta "Promedio listo → salida".
