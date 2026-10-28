@@ -56,6 +56,10 @@
   .tj-seg button { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
   .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
   .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+  .tj-xls { font: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid #15803D; border-radius: var(--cds-radius); background: #15803D; color: #fff; cursor: pointer; }
+  .tj-xls:hover { background: #166534; } .tj-xls:disabled { opacity: .6; cursor: progress; }
+  .tj-xls svg { width: 16px; height: 16px; }
+  .tj-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-sm) var(--cds-gap-md); }
   .tj-reset { font: inherit; padding: 6px 12px; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: transparent; color: var(--color-fg); cursor: pointer; }
 
   .tj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; }
@@ -205,7 +209,13 @@
 
   <section class="tj-card">
     <div class="tj-card-head">
-      <h2 id="t-titulo">Lotes</h2>
+      <div class="tj-title-row">
+        <h2 id="t-titulo">Lotes</h2>
+        <button type="button" class="tj-xls" id="descargar" title="Descarga en Excel todos los lotes que cumplen los filtros actuales (no solo los que se ven en pantalla)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span>Descargar Excel</span>
+        </button>
+      </div>
       <div class="tj-legend" aria-label="Convenciones">
         <span><i style="background:var(--st-rojo-bg);border-color:var(--color-bad)"></i>Asignado, sin registrar</span>
         <span><i style="background:var(--st-azul-bg);border-color:var(--st-azul)"></i>Registrado, sin inspección</span>
@@ -513,6 +523,128 @@
     if (lista.length > visibles) filas.push(`<tr><td colspan="16"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
     $('cuerpo').innerHTML = filas.join('');
   }
+
+  // ---- Descarga a Excel: todos los lotes que cumplen los filtros actuales, en el orden de la tabla ----
+  let xlsxListo = null;
+  const cargarXLSX = () => xlsxListo || (xlsxListo = new Promise((ok, mal) => {
+    if (window.XLSX) return ok();
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload = () => ok(); sc.onerror = () => { xlsxListo = null; mal(new Error('No se pudo cargar el generador de Excel')); };
+    document.head.appendChild(sc);
+  }));
+  // Fecha ISO -> número de serie de Excel (fecha real, sin hora ni zona horaria; se puede filtrar y ordenar en Excel).
+  const FECHA = Symbol('fecha');
+  const fx = (iso) => (iso ? { [FECHA]: (Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) - Date.UTC(1899, 11, 30)) / 86400000 } : null);
+  const ALERTA_TXT = { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Vence en 1-2 días', en_plazo: 'En plazo', a_tiempo: 'A tiempo', tarde: 'Listo tarde', previo: 'Sin alerta (antes del corte)' };
+  const CELDA_TXT = { verde: 'Aprobado', azul: 'Registrado', rojo: 'Asignado sin registro', sinreg: 'No registró', reproceso: 'Reproceso', gris: '' };
+  const MOV_NOMBRE = { 601: 'Entrega al cliente (601)', 939: 'Traslado (939)' };
+
+  function filasExcel(lista) {
+    return lista.map((l) => {
+      const o = {
+        'Lote': Number(l.lote) || l.lote,
+        'Producto': l.producto || '',
+        'Pieza': l.pieza || '',
+        'Tipo': l.tipo || '',
+        'Determinación (hoja)': l.determinacion || '',
+        'Centro': l.centro || '',
+        'Fecha de picking': fx(l.picking),
+        'Alerta de picking': ALERTA_TXT[l.alerta] || '',
+        'Días para picking': l.picking && l.alerta && !['a_tiempo', 'tarde', 'previo'].includes(l.alerta) ? l.d_picking : null,
+        'Fecha de ingreso': fx(l.entrada),
+        'Fecha de asignación': fx(l.asignacion),
+      };
+      for (const A of S.AREAS) {
+        const c = l.celdas[A.id];
+        o[`${A.label} - técnico`] = c.tecnicos.length ? c.tecnicos.map(corto).join(', ') : c.asignado ? corto(c.asignado) : '';
+        o[`${A.label} - fecha`] = fx(c.ultima);
+        o[`${A.label} - estado`] = CELDA_TXT[c.estado] || '';
+      }
+      Object.assign(o, {
+        'Inspección - resultado': l.insp ? titulo(l.insp.resultado) : 'Pendiente',
+        'Inspección - fecha': fx(l.insp && l.insp.fecha),
+        'Inspector': l.insp ? corto(l.insp.inspector) : '',
+        'Origen (inspector)': l.insp ? l.insp.origen || '' : '',
+        'Área a reprocesar': l.insp ? l.insp.reproceso || '' : '',
+        'Observaciones calidad': l.insp ? l.insp.obs || '' : '',
+        'Estado': l.estado,
+        'Envío a proveedor (161)': fx(l.envio_prov),
+        'Fecha listo': fx(l.listo && l.listo.fecha),
+        'Listo por': l.listo ? l.listo.motivo : '',
+        'Fecha de salida': fx(l.traslado),
+        'Movimiento de salida': l.salida_mov ? MOV_NOMBRE[l.salida_mov] || l.salida_mov : '',
+        'Días ingreso → asignación': l.d_entrada_inicio,
+        'Días asignación → listo': l.d_inicio_fin,
+        'Días totales': l.d_total,
+        'Días listo → salida': l.d_listo_salida,
+        'Sigue abierto': l.abierto ? 'Sí' : 'No',
+        'Último movimiento': fx(l.ultimo_mov),
+      });
+      return o;
+    });
+  }
+
+  function hojaFiltros(n) {
+    const sel = (id) => { const e = $(id); return e.options ? e.options[e.selectedIndex].text : ''; };
+    const asig = { Todos: 'Todos', Con: 'Con asignación', Sin: 'Sin asignación' }[F.asig];
+    const d = new Date();
+    return [
+      ['Seguimiento de lotes · Jamar, Plataforma Galapa'],
+      ['Generado', d.toLocaleString('es-CO')],
+      ['Lotes exportados', n],
+      [],
+      ['Filtro', 'Valor'],
+      ['Búsqueda', F.buscar || '(ninguna)'],
+      ['Tipo', sel('f-tipo')],
+      ['Estado', F.estado && !$('f-estado').querySelector(`option[value="${CSS.escape(F.estado)}"]`) ? F.estado : sel('f-estado')],
+      ['Fecha de picking', sel('f-picking')],
+      ['Asignación', asig],
+      ['Último movimiento', sel('f-periodo')],
+      ['Técnico', sel('f-tecnico')],
+      [],
+      ['Notas'],
+      ['Días calendario. "Sigue abierto" = el lote no tiene inspección aprobada; sus días se cuentan hasta la fecha de generación.'],
+      ['Fecha listo = inspección APROBADO; si no hay inspección, el primer empaque registrado.'],
+      ['Fecha de salida = primera entrega al cliente (601) o traslado (939) desde el ingreso del lote.'],
+    ];
+  }
+
+  async function descargar() {
+    const b = $('descargar'), txt = b.querySelector('span');
+    const lista = ordenar(filtrar(false));
+    if (!lista.length) { alert('No hay lotes con los filtros actuales.'); return; }
+    b.disabled = true; txt.textContent = 'Generando…';
+    try {
+      await cargarXLSX();
+      const crudas = filasExcel(lista);
+      const cols = Object.keys(crudas[0]);
+      const esFecha = (v) => v && typeof v === 'object' && FECHA in v;
+      const filas = crudas.map((f) => cols.map((c) => (esFecha(f[c]) ? f[c][FECHA] : f[c] ?? null)));
+      const ws = XLSX.utils.aoa_to_sheet([cols, ...filas]);
+      // Formato de fecha en las columnas que traen fechas.
+      cols.forEach((c, j) => {
+        if (!crudas.some((f) => esFecha(f[c]))) return;
+        for (let i = 0; i < crudas.length; i++) { const cell = ws[XLSX.utils.encode_cell({ r: i + 1, c: j })]; if (cell && cell.t === 'n') cell.z = 'dd/mm/yyyy'; }
+      });
+      ws['!cols'] = cols.map((c) => ({ wch: Math.min(Math.max(c.length, ...crudas.slice(0, 300).map((f) => (esFecha(f[c]) ? 10 : String(f[c] ?? '').length))) + 2, 42) }));
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: cols.length - 1 } }) };
+      const wf = XLSX.utils.aoa_to_sheet(hojaFiltros(filas.length));
+      wf['!cols'] = [{ wch: 22 }, { wch: 60 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Lotes');
+      XLSX.utils.book_append_sheet(wb, wf, 'Filtros');
+      const h = new Date();
+      const nombre = `Seguimiento_lotes_${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}_${String(h.getHours()).padStart(2, '0')}${String(h.getMinutes()).padStart(2, '0')}.xlsx`;
+      XLSX.writeFile(wb, nombre, { compression: true });
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo generar el Excel: ' + err.message);
+    } finally {
+      b.disabled = false; txt.textContent = 'Descargar Excel';
+    }
+  }
+  $('descargar').addEventListener('click', descargar);
 
   // Eventos
   const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
