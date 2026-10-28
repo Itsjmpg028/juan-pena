@@ -18,6 +18,8 @@
     /* Estados de las celdas */
     --st-verde-bg: color-mix(in srgb, var(--color-ok) 16%, var(--color-panel));
     --st-verde-fg: var(--color-ok);
+    --st-azul: #1D4ED8;
+    --st-azul-bg: color-mix(in srgb, var(--st-azul) 13%, var(--color-panel));
     --st-rojo-bg: color-mix(in srgb, var(--tj-crimson) 14%, var(--color-panel));
     --st-rojo-fg: var(--color-bad);
     --st-sinreg-bg: color-mix(in srgb, var(--color-warn) 18%, var(--color-panel));
@@ -96,6 +98,9 @@
   .tj-c small { display: block; white-space: nowrap; }
   .tj-c.verde { background: var(--st-verde-bg); color: var(--st-verde-fg); }
   .tj-c.verde b { color: var(--color-fg); }
+  .tj-c.azul { background: var(--st-azul-bg); color: var(--st-azul); }
+  .tj-c.azul b { color: var(--color-fg); }
+  @media (prefers-color-scheme: dark) { .tj { --st-azul: #60A5FA; } }
   .tj-c.rojo, .tj-c.reproceso { background: var(--st-rojo-bg); color: var(--st-rojo-fg); }
   .tj-c.rojo b, .tj-c.reproceso b { color: var(--color-fg); }
   .tj-c.sinreg { background: var(--st-sinreg-bg); color: var(--st-sinreg-fg); }
@@ -174,7 +179,8 @@
       <h2 id="t-titulo">Lotes</h2>
       <div class="tj-legend" aria-label="Convenciones">
         <span><i style="background:var(--st-rojo-bg);border-color:var(--color-bad)"></i>Asignado, sin registrar</span>
-        <span><i style="background:var(--st-verde-bg);border-color:var(--color-ok)"></i>Registrado / aprobado</span>
+        <span><i style="background:var(--st-azul-bg);border-color:var(--st-azul)"></i>Registrado, sin inspección</span>
+        <span><i style="background:var(--st-verde-bg);border-color:var(--color-ok)"></i>Inspeccionado y aprobado</span>
         <span><i style="background:var(--st-sinreg-bg);border-color:var(--color-warn)"></i>Inspeccionado sin registro del técnico</span>
         <span><i style="background:var(--st-gris-bg)"></i>No participó</span>
       </div>
@@ -208,7 +214,7 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="seguimiento-calcs.js?v=2"></script>
+<script src="seguimiento-calcs.js?v=3"></script>
 <script>
 (function () {
   const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRlQhy6LzGfbp4m05VwMLxzbL-0696oM7sXXApF_HbIlK6ZiHY8D1tb5LjWjBaoeg26kzYJUw6AQGPw/pub?single=true&output=csv&gid=';
@@ -224,7 +230,7 @@
   const S = window.Seguimiento;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
-  const corto = (n) => titulo(String(n || '').split(/\s+/).slice(0, 2).join(' '));
+  const corto = (n) => S.nombreCorto(n);
   const dm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
   const dmy = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '—');
   const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -286,7 +292,7 @@
     const sel = $('f-tecnico');
     const nombres = [...new Set(datos.lotes.flatMap((l) => l.tecnicos))].sort();
     const actual = F.tecnico;
-    sel.innerHTML = '<option value="">Todos</option>' + nombres.map((n) => `<option value="${esc(n)}">${esc(titulo(n))}</option>`).join('');
+    sel.innerHTML = '<option value="">Todos</option>' + nombres.map((n) => `<option value="${esc(n)}">${esc(corto(n))}</option>`).join('');
     sel.value = nombres.includes(actual) ? actual : '';
   }
 
@@ -328,11 +334,11 @@
   function celda(c, aprobado) {
     if (c.estado === 'gris') return '<div class="tj-c gris">—</div>';
     const det = c.regs.map((r) => `${dmy(r.fecha)} · ${titulo(r.tecnico)} · ${r.pieza || ''} (${r.piezas ?? '?'} pz)`).join('\n');
-    if (c.estado === 'verde') {
+    if (c.estado === 'verde' || c.estado === 'azul') {
       const nom = c.tecnicos.map(corto);
       const extra = nom.length > 1 ? ` +${nom.length - 1}` : '';
       const asigOtro = c.asignado && !c.tecnicos.includes(c.asignado) ? `\nAsignado a: ${titulo(c.asignado)}` : '';
-      return `<div class="tj-c verde" title="${esc(det + asigOtro)}"><b>${esc(nom[0] || '')}${extra}</b><small>${dm(c.ultima)}</small></div>`;
+      return `<div class="tj-c ${c.estado}" title="${esc(det + asigOtro)}"><b>${esc(nom[0] || '')}${extra}</b><small>${dm(c.ultima)}</small></div>`;
     }
     if (c.estado === 'reproceso') return `<div class="tj-c reproceso" title="${esc('Calidad pidió reproceso en esta área\n' + det)}"><b>Reproceso</b><small>${esc(corto(c.tecnicos[0] || c.asignado) || 'pendiente')}</small></div>`;
     if (c.estado === 'sinreg') return `<div class="tj-c sinreg" title="${esc('Asignado a ' + titulo(c.asignado) + '. El lote se inspeccionó, pero este técnico no registró su trabajo.')}"><b>${esc(corto(c.asignado))}</b><small>No registró</small></div>`;
@@ -359,7 +365,7 @@
     }
     for (const r of l.regs) {
       const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
-      ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: 'var(--color-ok)' });
+      ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: l.estado === 'Listo' ? 'var(--color-ok)' : 'var(--st-azul)' });
     }
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));

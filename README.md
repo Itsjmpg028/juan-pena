@@ -22,6 +22,6 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Lotes incluidos: todo lote asignado y todo lote con registros de producción (6–8 dígitos; 101/102 y valores raros no se siguen).
 - Tipo por centro: 2000, 2001, 2006 = Taller; 2500, 2503, 2506, 2508 = Venta. El ORIGEN que elige el inspector se muestra aparte.
 - Áreas: Acabados incluye POLICHE; Empaque = TIPO DE SERVICIO "EMPAQUE" (lo registre quien lo registre).
-- Colores: rojo = asignado sin registrar; verde = registrado (técnico y última fecha); naranja = lote inspeccionado pero el técnico asignado nunca registró; gris = el área no participó. Lote aprobado = fila en verde.
+- Colores: rojo = asignado sin registrar; azul = registrado sin inspección (técnico y última fecha); verde = lote aprobado por calidad; naranja = lote inspeccionado pero el técnico asignado nunca registró; gris = el área no participó. Lote aprobado = fila en verde.
 - Estados: Por iniciar · En proceso · Por inspeccionar (áreas asignadas completas o empacado) · Reproceso · Listo (inspección más reciente APROBADO).
 - Fecha de ingreso: la entrada de Inventario más reciente que sea anterior al inicio del trabajo.

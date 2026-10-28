@@ -155,11 +155,13 @@
         const piezasAsig = asig ? num(A.id === 'eban' ? asig.p_eban : A.id === 'tapi' ? asig.p_tapi : null) : null;
         const tecnicos = [...new Set(regs.slice().reverse().map((r) => r.tecnico).filter(Boolean))];
         const ultima = regs.length ? regs[regs.length - 1].fecha : null;
+        // Registrado: azul mientras el lote no esté aprobado; verde solo cuando calidad lo aprobó.
+        const hecho = aprobado ? 'verde' : 'azul';
         let estado;
         if (reproArea === A.id) {
           const despues = regs.filter((r) => r.dt > insp.dt);
-          estado = despues.length ? 'verde' : 'reproceso';
-        } else if (regs.length) estado = 'verde';
+          estado = despues.length ? hecho : 'reproceso';
+        } else if (regs.length) estado = hecho;
         else if (asignado) estado = aprobado ? 'sinreg' : 'rojo';
         else estado = 'gris';
         celdas[A.id] = { estado, tecnicos, ultima, asignado, piezasAsig, regs, piezas: regs.reduce((s, r) => s + (r.piezas || 0), 0) };
@@ -170,8 +172,8 @@
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
       else if (L.regs.length) {
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
-        const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'verde');
-        estado = celdas.emp.estado === 'verde' || completas ? 'Por inspeccionar' : 'En proceso';
+        const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
+        estado = celdas.emp.estado === 'azul' || completas ? 'Por inspeccionar' : 'En proceso';
       } else if (asig) estado = 'Por iniciar';
       else estado = 'Por iniciar';
 
@@ -204,6 +206,38 @@
     return { lotes: out, avisos };
   }
 
-  const api = { construir, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
+  // Primer nombre + primer apellido. En la hoja Tecnico unos nombres empiezan por apellido y otros por nombre,
+  // así que los conocidos van en esta tabla. Para uno nuevo: con 4 palabras se asume APELLIDO APELLIDO NOMBRE NOMBRE;
+  // si no, se toman las dos primeras palabras. Para corregir uno, agrégalo aquí.
+  const NOMBRES = {
+    'ACUNA DAVILA RIDER JOSE': 'Rider Acuña',
+    'MANOTAS BARRAZA ROBERTO WILLY': 'Roberto Manotas',
+    'OJEDA FERRER NAYIB': 'Nayib Ojeda',
+    'PUELLO ROBERTH': 'Roberth Puello',
+    'CENTENO NAVARRO ROBINSON': 'Robinson Centeno',
+    'PEREZ GASTELBONDO DAYAN': 'Dayan Pérez',
+    'CASTILLO LOZANO EDWIN ALBERTO': 'Edwin Castillo',
+    'NUNEZ RODRIGUEZ JOHNNY JUNIOR': 'Johnny Núñez',
+    'VARELA LEIVA LUIS EDUARDO': 'Luis Varela',
+    'VILLAREAL JHON': 'Jhon Villareal',
+    'JHOAN MANOTAS': 'Jhoan Manotas',
+    'JOHANA ESTER MAHECHA CELIS': 'Johana Mahecha',
+    'YESICA DEL CARMEN ROSALES': 'Yesica Rosales',
+    'EFREN PALENCIA': 'Efrén Palencia',
+    'ANDRES SIERRA': 'Andrés Sierra',
+    'NAIRITH ORDONEZ NORIEGA': 'Nairith Ordoñez',
+    'BRANDON ARIZA': 'Brandon Ariza',
+    'PAUL MORA': 'Paul Mora',
+  };
+  const tc = (s) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  const nombreCorto = (n) => {
+    const k = norm(n).replace(/\s+/g, ' ');
+    if (!k) return '';
+    if (NOMBRES[k]) return NOMBRES[k];
+    const w = String(n).trim().split(/\s+/);
+    return tc(w.length === 4 ? `${w[2]} ${w[0]}` : w.slice(0, 2).join(' '));
+  };
+
+  const api = { construir, nombreCorto, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Seguimiento = api;
 })(typeof window !== 'undefined' ? window : globalThis);
