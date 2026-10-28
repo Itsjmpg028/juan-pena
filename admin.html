@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel taller Jamar</title>
+<meta name="description" content="Vista de administrador: tablero de productividad y seguimiento de lotes del taller.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1F2937">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="tokens.css?v=7">
+<style>
+  body { padding: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .ad-bar { background: #1F2937; color: #fff; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 3px solid #D2132C; }
+  .ad-brand { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); white-space: nowrap; }
+  .ad-brand b { color: #fff; letter-spacing: .14em; }
+  .ad-brand i { width: 8px; height: 8px; background: #D2132C; border-radius: 2px; display: inline-block; }
+  .ad-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ad-tabs button { font: inherit; font-size: var(--cds-font-size-body); color: rgba(255,255,255,.8); background: transparent; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+  .ad-tabs button:hover { border-color: #fff; color: #fff; }
+  .ad-tabs button[aria-selected="true"] { background: #D2132C; border-color: #D2132C; color: #fff; font-weight: 600; }
+  .ad-tabs button:focus-visible, .ad-links a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .ad-links { margin-left: auto; display: flex; gap: 12px; font-size: var(--cds-font-size-caption); }
+  .ad-links a { color: rgba(255,255,255,.72); }
+  .ad-links a:hover { color: #fff; }
+  .ad-frames { flex: 1; min-height: 0; position: relative; }
+  .ad-frames iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--color-bg); }
+  .ad-frames iframe[hidden] { display: none; }
+  @media (max-width: 640px) { .ad-links { display: none; } }
+</style>
+</head>
+<body>
+<header class="ad-bar">
+  <div class="ad-brand"><i></i><b>Jamar</b><span>Panel del taller</span></div>
+  <div class="ad-tabs" role="tablist" aria-label="Tableros">
+    <button type="button" role="tab" id="tab-productividad" aria-controls="f-productividad" data-t="productividad">Productividad</button>
+    <button type="button" role="tab" id="tab-seguimiento" aria-controls="f-seguimiento" data-t="seguimiento">Seguimiento de lotes</button>
+  </div>
+  <nav class="ad-links" aria-label="Enlaces para compartir">
+    <a href="index.html" target="_blank" rel="noopener">Abrir Productividad ↗</a>
+    <a href="seguimiento.html" target="_blank" rel="noopener">Abrir Seguimiento ↗</a>
+  </nav>
+</header>
+<main class="ad-frames">
+  <iframe id="f-productividad" role="tabpanel" aria-labelledby="tab-productividad" title="Productividad" data-src="index.html" hidden></iframe>
+  <iframe id="f-seguimiento" role="tabpanel" aria-labelledby="tab-seguimiento" title="Seguimiento de lotes" data-src="seguimiento.html" hidden></iframe>
+</main>
+<script>
+(function () {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function mostrar(t) {
+    if (!['productividad', 'seguimiento'].includes(t)) t = 'productividad';
+    for (const b of tabs) {
+      const sel = b.dataset.t === t;
+      b.setAttribute('aria-selected', String(sel));
+      b.tabIndex = sel ? 0 : -1;
+      const f = document.getElementById('f-' + b.dataset.t);
+      if (sel && !f.src) f.src = f.dataset.src; // cada tablero se carga la primera vez que se abre
+      f.hidden = !sel;
+    }
+    try { history.replaceState(null, '', '#' + t); } catch (e) { /* ignore */ }
+  }
+  tabs.forEach((b) => b.addEventListener('click', () => mostrar(b.dataset.t)));
+  document.querySelector('[role="tablist"]').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = tabs.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+    const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    mostrar(n.dataset.t); n.focus();
+  });
+  mostrar(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>

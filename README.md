@@ -2,7 +2,12 @@
 
 Cumplimiento de piezas por técnico y área del taller de reacondicionamiento.
 
-**Ver el tablero:** https://itsjmpg028.github.io/juan-pena/
+**Enlaces**
+- Productividad (para compartir): https://itsjmpg028.github.io/juan-pena/
+- Seguimiento de lotes (para compartir): https://itsjmpg028.github.io/juan-pena/seguimiento.html
+- Panel de administrador (los dos en pestañas): https://itsjmpg028.github.io/juan-pena/admin.html — `#seguimiento` abre directo esa pestaña. No tiene contraseña: cualquiera con el enlace lo ve.
+
+Cada tablero es independiente (sin enlaces al otro); admin.html los muestra dentro de pestañas con iframes.
 
 - Lee en vivo las hojas *Registro de PrOD*, *Tecnico* y *Calendario* del libro APP JAMAR, publicadas en la web como CSV (enlaces en `shim.js`).
 - Se recarga sola cada 5 minutos.
