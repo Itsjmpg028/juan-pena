@@ -83,8 +83,9 @@
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
   const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
   const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
-  // Solo generan alerta los picking desde esta fecha (la inspección de calidad empezó el 26/10/2026).
-  const CORTE_ALERTAS = '2026-10-26';
+  // Fecha de corte de alertas: vacía = todos los picking vencidos sin cerrar son incumplimientos (decisión 28/10/2026).
+  // Para volver a ignorar picking antiguos, poner una fecha AAAA-MM-DD.
+  const CORTE_ALERTAS = '';
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
@@ -232,7 +233,7 @@
       const dPick = picking ? dias(hoy, picking) : null;
       if (picking) {
         if (cierre) alerta = cierre.fecha <= picking ? 'a_tiempo' : 'tarde';
-        else if (picking < CORTE_ALERTAS) alerta = 'previo';
+        else if (CORTE_ALERTAS && picking < CORTE_ALERTAS) alerta = 'previo';
         else if (dPick < 0) alerta = 'vencido';
         else if (dPick === 0) alerta = 'hoy';
         else if (dPick <= DIAS_AVISO) alerta = 'proximo';
@@ -255,6 +256,8 @@
         picking_txt: D ? D.picking_txt : '',
         alerta,
         d_picking: dPick,
+        // Días de retraso frente al picking: incumplido (sin cerrar) o cumplido tarde.
+        retraso: alerta === 'vencido' ? -dPick : alerta === 'tarde' ? dias(picking, cierre.fecha) : null,
         cierre,
         traslado,
         salida_mov: salida ? salida.mov : null,

@@ -128,6 +128,14 @@
   .tj-msg { padding: 24px; text-align: center; color: var(--color-fg-muted); }
   .tj-err { border: 1px solid var(--color-bad); color: var(--color-bad); background: var(--st-rojo-bg); border-radius: var(--cds-radius); padding: 10px 14px; font-size: var(--cds-font-size-caption); }
   .tj-err:empty { display: none; }
+  .tj-incumple { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; border: 2px solid var(--tj-crimson); background: var(--st-rojo-bg); border-radius: var(--cds-radius); padding: 12px 16px; }
+  .tj-incumple[hidden] { display: none; }
+  .tj-incumple b.n { font-size: 1.6rem; line-height: 1; color: var(--color-bad); font-variant-numeric: tabular-nums; }
+  .tj-incumple .t { display: grid; gap: 2px; flex: 1; min-width: 14rem; }
+  .tj-incumple .t strong { font-size: var(--cds-font-size-body); }
+  .tj-incumple .t span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-incumple button { font: inherit; font-weight: 600; padding: 6px 14px; border-radius: var(--cds-radius); border: 1px solid var(--tj-crimson); background: var(--tj-crimson); color: #fff; cursor: pointer; }
+  .tj-incumple button[aria-pressed="true"] { background: transparent; color: var(--color-bad); }
   .tj-foot { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
 </style>
 </head>
@@ -142,6 +150,8 @@
   </header>
 
   <div class="tj-err" id="errores" role="alert"></div>
+
+  <section class="tj-incumple" id="incumple" hidden aria-live="polite"></section>
 
   <section class="tj-kpis" id="kpis" aria-label="Lotes por estado"></section>
 
@@ -180,9 +190,10 @@
     <label class="tj-field" for="f-picking">Fecha de picking
       <select id="f-picking">
         <option value="">Todos</option>
-        <option value="alerta">Con alerta (vencidos y hoy)</option>
-        <option value="vencido">Vencidos</option>
+        <option value="vencido">Incumplidos (picking vencido sin estar listo)</option>
+        <option value="alerta">Incumplidos y que vencen hoy</option>
         <option value="proximo">Vencen en 1–2 días</option>
+        <option value="tarde">Cumplidos tarde</option>
         <option value="con">Con fecha de picking</option>
       </select>
     </label>
@@ -364,6 +375,7 @@
       else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
       if (F.picking === 'alerta' && !['vencido', 'hoy'].includes(l.alerta)) return false;
       if (F.picking === 'vencido' && l.alerta !== 'vencido') return false;
+      if (F.picking === 'tarde' && l.alerta !== 'tarde') return false;
       if (F.picking === 'proximo' && l.alerta !== 'proximo') return false;
       if (F.picking === 'con' && !l.picking) return false;
       if (F.asig === 'Con' && !l.asignacion) return false;
@@ -390,7 +402,7 @@
       `<button type="button" class="tj-kpi" data-estado="" aria-pressed="${!F.estado}" style="--k:var(--color-fg)"><span>Lotes en el periodo</span><b>${base.length}</b><small>${base.filter((l) => l.asignacion).length} con asignación</small></button>` +
       ESTADOS.map((e) => `<button type="button" class="tj-kpi" data-estado="${e.id}" aria-pressed="${F.estado === e.id}" style="--k:${e.k}"><span>${e.id}</span><b>${n(e.id)}</b><small>${e.d}</small></button>`).join('') +
       (() => { const v = base.filter((l) => l.alerta === 'vencido').length, h = base.filter((l) => l.alerta === 'hoy').length, pr = base.filter((l) => l.alerta === 'proximo').length;
-        return `<button type="button" class="tj-kpi" data-picking="alerta" aria-pressed="${F.picking === 'alerta'}" style="--k:var(--tj-crimson)"><span>Alertas de picking</span><b style="color:${v + h ? 'var(--color-bad)' : 'inherit'}">${v + h}</b><small>${v} vencidos · ${h} vencen hoy · ${pr} en 1–2 días</small></button>`; })() +
+        return `<button type="button" class="tj-kpi" data-picking="vencido" aria-pressed="${F.picking === 'vencido'}" style="--k:var(--tj-crimson)"><span>Incumplimientos de picking</span><b style="color:${v ? 'var(--color-bad)' : 'inherit'}">${v}</b><small>${h} vencen hoy · ${pr} en 1–2 días</small></button>`; })() +
       `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>` +
       (() => { const sl = base.filter((l) => l.traslado && l.d_listo_salida != null); const pr = sl.length ? Math.round(sl.reduce((s, l) => s + l.d_listo_salida, 0) / sl.length * 10) / 10 : null; const esp = base.filter((l) => l.listo_abierto).length;
         return `<div class="tj-kpi tj-info" style="--k:#0F766E"><span>Promedio listo → salida</span><b>${pr == null ? '—' : String(pr).replace('.', ',') + ' d'}</b><small>${sl.length} lotes salieron · ${esp} listos esperando</small></div>`; })();
@@ -422,14 +434,14 @@
   function celdaPicking(l) {
     if (!l.picking) return l.determinacion === 'PRODUCTO IMPORTADO' ? '<div class="tj-c gris">Importado</div>' : '<div class="tj-c gris">—</div>';
     const f = dm(l.picking), n = l.d_picking;
-    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.alerta === 'previo' ? '\nPicking anterior al ' + dmy(S.CORTE_ALERTAS) + ': no genera alerta' : ''}`;
+    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.alerta === 'previo' ? '\nPicking anterior al ' + dmy(S.CORTE_ALERTAS) + ': no genera alerta' : ''}${l.alerta === 'vencido' ? `\nINCUMPLIDO: ${l.retraso} días de retraso. ${l.estado === 'En proveedor' ? 'El proveedor no ha devuelto el producto.' : l.estado === 'Sin enviar a proveedor' ? 'No se ha enviado a proveedor.' : 'No está listo en el taller.'}` : ''}`;
     const c = (cls, b, sm) => `<div class="tj-c ${cls}" title="${esc(tip)}"><b>${b}</b><small>${sm}</small></div>`;
     switch (l.alerta) {
-      case 'vencido': return c('rojo', 'Vencido', `${f} · hace ${-n} d`);
+      case 'vencido': return c('rojo', 'Incumplido', `${f} · ${-n} d de retraso`);
       case 'hoy': return c('rojo', 'Vence hoy', f);
       case 'proximo': return c('sinreg', `En ${n} d`, f);
       case 'a_tiempo': return c(l.cierre.motivo === 'inspección' ? 'verde' : 'azul', 'A tiempo', `${f} · ${l.cierre.motivo}`);
-      case 'tarde': return c('sinreg', 'Listo tarde', `${f} → ${dm(l.cierre.fecha)} ${l.cierre.motivo}`);
+      case 'tarde': return c('sinreg', 'Cumplido tarde', `${f} → ${dm(l.cierre.fecha)} · ${l.retraso} d tarde`);
       case 'previo': return c('pend', f, 'sin alerta');
       default: return c('pend', f, `en ${n} d`);
     }
@@ -475,6 +487,23 @@
     });
   }
 
+  // Aviso de incumplimientos: picking vencido sin estar listo, sin importar los filtros de periodo, tipo o estado.
+  function banner() {
+    const inc = datos.lotes.filter((l) => l.alerta === 'vencido');
+    const el = $('incumple');
+    if (!inc.length) { el.hidden = true; return; }
+    const n = (f) => inc.filter(f).length;
+    const prov = n((l) => l.estado === 'En proveedor'), sinEnv = n((l) => l.estado === 'Sin enviar a proveedor');
+    const taller = inc.length - prov - sinEnv;
+    const peor = inc.slice().sort((a, b) => b.retraso - a.retraso)[0];
+    const activo = F.picking === 'vencido';
+    el.hidden = false;
+    el.innerHTML = `<b class="n">${inc.length}</b>
+      <div class="t"><strong>Incumplimientos de fecha de picking</strong>
+      <span>${prov} en proveedor sin devolver · ${sinEnv} sin enviar a proveedor · ${taller} sin terminar en el taller · mayor retraso: lote ${esc(peor.lote)} con ${peor.retraso} días</span></div>
+      <button type="button" id="ver-incumple" aria-pressed="${activo}">${activo ? 'Quitar filtro' : 'Ver incumplimientos'}</button>`;
+  }
+
   function pintar() {
     // Controles
     $('f-asig').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F.asig)));
@@ -494,8 +523,9 @@
     const listos = base.filter((l) => l.estado === 'Listo').length;
     const rep = base.filter((l) => l.estado === 'Reproceso').length;
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
-    const alertas = base.filter((l) => l.alerta === 'vencido' || l.alerta === 'hoy').length;
-    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} con picking vencido o que vence hoy sin estar listos.</b>` : ''}`;
+    const alertas = base.filter((l) => l.alerta === 'vencido').length;
+    banner();
+    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} incumplimientos de picking.</b>` : ''}`;
     const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos', __salio: 'salieron de la plataforma' };
     $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + (ESTADO_TXT[F.estado] || F.estado) : ''})`;
 
@@ -536,7 +566,7 @@
   // Fecha ISO -> número de serie de Excel (fecha real, sin hora ni zona horaria; se puede filtrar y ordenar en Excel).
   const FECHA = Symbol('fecha');
   const fx = (iso) => (iso ? { [FECHA]: (Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) - Date.UTC(1899, 11, 30)) / 86400000 } : null);
-  const ALERTA_TXT = { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Vence en 1-2 días', en_plazo: 'En plazo', a_tiempo: 'A tiempo', tarde: 'Listo tarde', previo: 'Sin alerta (antes del corte)' };
+  const ALERTA_TXT = { vencido: 'Incumplido', hoy: 'Vence hoy', proximo: 'Vence en 1-2 días', en_plazo: 'En plazo', a_tiempo: 'A tiempo', tarde: 'Cumplido tarde', previo: 'Sin alerta (antes del corte)' };
   const CELDA_TXT = { verde: 'Aprobado', azul: 'Registrado', rojo: 'Asignado sin registro', sinreg: 'No registró', reproceso: 'Reproceso', gris: '' };
   const MOV_NOMBRE = { 601: 'Entrega al cliente (601)', 939: 'Traslado (939)' };
 
@@ -551,7 +581,8 @@
         'Centro': l.centro || '',
         'Fecha de picking': fx(l.picking),
         'Alerta de picking': ALERTA_TXT[l.alerta] || '',
-        'Días para picking': l.picking && l.alerta && !['a_tiempo', 'tarde', 'previo'].includes(l.alerta) ? l.d_picking : null,
+        'Días para picking': l.picking && ['hoy', 'proximo', 'en_plazo'].includes(l.alerta) ? l.d_picking : null,
+        'Días de retraso picking': l.retraso,
         'Fecha de ingreso': fx(l.entrada),
         'Fecha de asignación': fx(l.asignacion),
       };
@@ -645,6 +676,13 @@
     }
   }
   $('descargar').addEventListener('click', descargar);
+  $('incumple').addEventListener('click', (e) => {
+    if (!e.target.closest('#ver-incumple')) return;
+    if (F.picking === 'vencido') { cambiar({ picking: '' }); return; }
+    // Muestra todos los incumplidos: quita los demás filtros que podrían esconderlos y ordena por mayor retraso.
+    $('f-buscar').value = '';
+    cambiar({ picking: 'vencido', periodo: '0', tipo: 'Todos', estado: '', asig: 'Todos', tecnico: '', buscar: '', sort: 'retraso', dir: -1 });
+  });
 
   // Eventos
   const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
