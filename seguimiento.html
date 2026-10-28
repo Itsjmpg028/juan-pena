@@ -38,7 +38,7 @@
   .tj-takeaway { margin: 0; color: rgba(255,255,255,.78); max-width: 80ch; }
   .tj-takeaway b { color: #fff; font-weight: 600; }
 
-  .tj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: var(--cds-gap-sm); }
+  .tj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.2rem, 1fr)); gap: var(--cds-gap-sm); }
   .tj-kpi { font: inherit; text-align: left; color: inherit; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: grid; gap: 2px; cursor: pointer; position: relative; }
   .tj-kpi::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 0 3px 3px 0; background: var(--k, var(--tj-ink)); }
   .tj-kpi span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
@@ -85,8 +85,10 @@
   tr[aria-expanded="true"] .tj-lote::before { content: "▾ "; }
   .tj-prod { display: block; color: var(--color-fg-muted); max-width: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; }
   .tj-tipo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; border: 1px solid currentColor; }
-  .tj-tipo.Taller { color: var(--tj-ink); } .tj-tipo.Venta { color: var(--tj-crimson); } .tj-tipo.Otro { color: var(--color-fg-muted); }
-  @media (prefers-color-scheme: dark) { .tj-tipo.Taller { color: var(--color-fg); } }
+  .tj-tipo.tp { color: var(--tj-ink); } .tj-tipo.tv { color: #7C3AED; } .tj-tipo.ta { color: var(--color-fg-muted); border-style: dashed; }
+  .tj-tipo.im { color: #0F766E; } .tj-tipo.ve { color: var(--tj-crimson); } .tj-tipo.ot { color: var(--color-fg-muted); }
+  @media (prefers-color-scheme: dark) { .tj-tipo.tp { color: var(--color-fg); } .tj-tipo.tv { color: #A78BFA; } .tj-tipo.im { color: #2DD4BF; } }
+  .tj-table tr.tj-vencido td.tj-sticky { box-shadow: inset 4px 0 0 var(--tj-crimson), 1px 0 0 var(--color-border-line); }
   .tj-date { white-space: nowrap; }
 
   .tj-c { border-radius: 6px; padding: 4px 7px; min-width: 7.2rem; line-height: 1.25; }
@@ -108,6 +110,8 @@
   .tj-estado { font-weight: 600; white-space: nowrap; }
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
+  .tj-estado.En-proveedor { color: #7C3AED; }
+  @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } }
 
   .tj-det td { background: var(--color-bg) !important; padding: 10px 14px 14px; }
   .tj-det h3 { margin: 4px 0 6px; font-size: var(--cds-font-size-caption); text-transform: uppercase; letter-spacing: .06em; color: var(--color-fg-muted); }
@@ -140,11 +144,26 @@
     <label class="tj-field" for="f-buscar">Buscar lote o producto
       <input id="f-buscar" type="search" placeholder="Ej. 1882038 o comedor" autocomplete="off">
     </label>
-    <div class="tj-field">Tipo
-      <div class="tj-seg" id="f-tipo" role="group" aria-label="Tipo">
-        <button type="button" data-v="Todos">Todos</button><button type="button" data-v="Taller">Taller</button><button type="button" data-v="Venta">Venta</button>
-      </div>
-    </div>
+    <label class="tj-field" for="f-tipo">Tipo
+      <select id="f-tipo">
+        <option value="Todos">Todos</option>
+        <option value="TallerTodos">Taller (todos)</option>
+        <option value="Taller plataforma">Taller plataforma</option>
+        <option value="Taller proveedor">Taller proveedor</option>
+        <option value="Taller">Taller sin determinación</option>
+        <option value="Importado">Producto importado</option>
+        <option value="Venta">Recuperación / venta</option>
+      </select>
+    </label>
+    <label class="tj-field" for="f-picking">Fecha de picking
+      <select id="f-picking">
+        <option value="">Todos</option>
+        <option value="alerta">Con alerta (vencidos y hoy)</option>
+        <option value="vencido">Vencidos</option>
+        <option value="proximo">Vencen en 1–2 días</option>
+        <option value="con">Con fecha de picking</option>
+      </select>
+    </label>
     <div class="tj-field">Asignación
       <div class="tj-seg" id="f-asig" role="group" aria-label="Asignación">
         <button type="button" data-v="Todos">Todos</button><button type="button" data-v="Con">Con asignación</button><button type="button" data-v="Sin">Sin asignación</button>
@@ -175,6 +194,7 @@
         <span><i style="background:var(--st-verde-bg);border-color:var(--color-ok)"></i>Inspeccionado y aprobado</span>
         <span><i style="background:var(--st-sinreg-bg);border-color:var(--color-warn)"></i>Inspeccionado sin registro del técnico</span>
         <span><i style="background:var(--st-gris-bg)"></i>No participó</span>
+        <span><i style="background:var(--color-panel);border:2px solid var(--tj-crimson)"></i>Picking vencido</span>
       </div>
     </div>
     <div class="tj-scroll">
@@ -183,6 +203,7 @@
           <tr>
             <th class="tj-sticky"><button type="button" data-sort="lote">Lote</button></th>
             <th>Tipo</th>
+            <th title="Fecha de picking (hoja Determinación). El lote debe estar aprobado por calidad a más tardar ese día."><button type="button" data-sort="picking">Picking</button></th>
             <th><button type="button" data-sort="entrada">Fecha de ingreso</button></th>
             <th><button type="button" data-sort="asignacion">Asignación</button></th>
             <th>Ebanistería</th>
@@ -197,7 +218,7 @@
             <th class="tj-num" title="Días entre la fecha de ingreso y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_total">Total</button></th>
           </tr>
         </thead>
-        <tbody id="cuerpo"><tr><td colspan="14" class="tj-msg">Cargando…</td></tr></tbody>
+        <tbody id="cuerpo"><tr><td colspan="15" class="tj-msg">Cargando…</td></tr></tbody>
       </table>
     </div>
     <p class="tj-foot">Días calendario. En cursiva: lote todavía abierto (se cuenta hasta hoy). Toca un lote para ver su recorrido completo.</p>
@@ -215,7 +236,8 @@
     registros: { gid: 227315461, hoja: 'Registro de PrOD', requerida: true },
     asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
     inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
-    inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false },
+    inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false, sin: 'las fechas de ingreso quedan vacías' },
+    determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
   };
   const REFRESCO_MIN = 5;
   const PAGINA = 150;
@@ -230,10 +252,10 @@
   const restar = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
   // Filtros (se recuerdan en este navegador)
-  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', tecnico: '', estado: '', sort: 'ultimo_mov', dir: -1 };
+  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', tecnico: '', estado: '', picking: '', sort: 'ultimo_mov', dir: -1 };
   let F = { ...DEF };
-  try { const s = JSON.parse(localStorage.getItem('tj-seg-filtros') || 'null'); if (s) F = { ...DEF, ...s, buscar: '', estado: '' }; } catch (e) { /* sin almacenamiento */ }
-  const guardar = () => { try { const { tipo, asig, periodo, tecnico, sort, dir } = F; localStorage.setItem('tj-seg-filtros', JSON.stringify({ tipo, asig, periodo, tecnico, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
+  try { const s = JSON.parse(localStorage.getItem('tj-seg-filtros2') || 'null'); if (s) F = { ...DEF, ...s, buscar: '', estado: '' }; } catch (e) { /* sin almacenamiento */ }
+  const guardar = () => { try { const { tipo, asig, periodo, tecnico, picking, sort, dir } = F; localStorage.setItem('tj-seg-filtros2', JSON.stringify({ tipo, asig, periodo, tecnico, picking, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
 
   const crudo = {};
   let datos = { lotes: [], avisos: [] };
@@ -266,7 +288,7 @@
     const msgs = [];
     for (const id of errores) {
       const f = FUENTES[id];
-      msgs.push(`No se pudo leer la hoja <b>${esc(f.hoja)}</b>${f.requerida ? '' : ' (las fechas de ingreso quedan vacías)'}. Revisa que esté publicada: Archivo → Compartir → Publicar en la web → hoja "${esc(f.hoja)}" → Valores separados por comas (.csv).`);
+      msgs.push(`No se pudo leer la hoja <b>${esc(f.hoja)}</b>${f.requerida ? '' : ` (${esc(f.sin)})`}. Revisa que esté publicada: Archivo → Compartir → Publicar en la web → hoja "${esc(f.hoja)}" → Valores separados por comas (.csv).`);
     }
     if (!faltan.length) {
       datos = S.construir(crudo, hoyISO());
@@ -290,7 +312,8 @@
   }
 
   const ESTADOS = [
-    { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Asignados sin registros' },
+    { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Sin registros todavía' },
+    { id: 'En proveedor', k: '#7C3AED', d: 'Taller proveedor sin regresar' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
     { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
@@ -301,13 +324,20 @@
     const desde = F.periodo === '0' ? '' : restar(hoyISO(), Number(F.periodo));
     const q = F.buscar.trim().toLowerCase();
     return datos.lotes.filter((l) => {
-      if (desde && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
-      if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
+      // Un lote con picking pendiente siempre se muestra, aunque no tenga movimiento reciente.
+      const pickPendiente = l.picking && !l.fin;
+      if (desde && !pickPendiente && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
+      if (F.tipo === 'TallerTodos') { if (!/^Taller|^Importado/.test(l.tipo)) return false; }
+      else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
+      if (F.picking === 'alerta' && !['vencido', 'hoy'].includes(l.alerta)) return false;
+      if (F.picking === 'vencido' && l.alerta !== 'vencido') return false;
+      if (F.picking === 'proximo' && l.alerta !== 'proximo') return false;
+      if (F.picking === 'con' && !l.picking) return false;
       if (F.asig === 'Con' && !l.asignacion) return false;
       if (F.asig === 'Sin' && l.asignacion) return false;
       if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
       if (!sinEstado && F.estado && l.estado !== F.estado) return false;
-      if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q)) return false;
+      if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q)) return false;
       return true;
     });
   }
@@ -321,6 +351,8 @@
     $('kpis').innerHTML =
       `<button type="button" class="tj-kpi" data-estado="" aria-pressed="${!F.estado}" style="--k:var(--color-fg)"><span>Lotes en el periodo</span><b>${base.length}</b><small>${base.filter((l) => l.asignacion).length} con asignación</small></button>` +
       ESTADOS.map((e) => `<button type="button" class="tj-kpi" data-estado="${e.id}" aria-pressed="${F.estado === e.id}" style="--k:${e.k}"><span>${e.id}</span><b>${n(e.id)}</b><small>${e.d}</small></button>`).join('') +
+      (() => { const v = base.filter((l) => l.alerta === 'vencido').length, h = base.filter((l) => l.alerta === 'hoy').length, pr = base.filter((l) => l.alerta === 'proximo').length;
+        return `<button type="button" class="tj-kpi" data-picking="alerta" aria-pressed="${F.picking === 'alerta'}" style="--k:var(--tj-crimson)"><span>Alertas de picking</span><b style="color:${v + h ? 'var(--color-bad)' : 'inherit'}">${v + h}</b><small>${v} vencidos · ${h} vencen hoy · ${pr} en 1–2 días</small></button>`; })() +
       `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>`;
   }
 
@@ -347,6 +379,23 @@
     return `<div class="tj-c reproceso" title="${esc(tip)}"><b>Reproceso${orig}</b><small>${esc(titulo(i.reproceso || ''))} · ${dm(i.fecha)}</small></div>`;
   }
 
+  function celdaPicking(l) {
+    if (!l.picking) return l.determinacion === 'PRODUCTO IMPORTADO' ? '<div class="tj-c gris">Importado</div>' : '<div class="tj-c gris">—</div>';
+    const f = dm(l.picking), n = l.d_picking;
+    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}`;
+    const c = (cls, b, sm) => `<div class="tj-c ${cls}" title="${esc(tip)}"><b>${b}</b><small>${sm}</small></div>`;
+    switch (l.alerta) {
+      case 'vencido': return c('rojo', 'Vencido', `${f} · hace ${-n} d`);
+      case 'hoy': return c('rojo', 'Vence hoy', f);
+      case 'proximo': return c('sinreg', `En ${n} d`, f);
+      case 'a_tiempo': return c('verde', 'A tiempo', f);
+      case 'tarde': return c('sinreg', 'Listo tarde', `${f} → ${dm(l.fin)}`);
+      default: return c('pend', f, `en ${n} d`);
+    }
+  }
+  const TIPO_CLASE = { 'Taller plataforma': 'tp', 'Taller proveedor': 'tv', Taller: 'ta', Importado: 'im', Venta: 've' };
+  const TIPO_TXT = { Taller: 'Taller s/ det.', Venta: 'Venta', Importado: 'Importado' };
+
   const diasTxt = (n, abierto) => (n == null ? '<span class="tj-muted">—</span>' : abierto ? `<span class="tj-abierto">${n}</span>` : String(n));
 
   function detalle(l) {
@@ -360,16 +409,20 @@
       const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
       ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: l.estado === 'Listo' ? 'var(--color-ok)' : 'var(--st-azul)' });
     }
+    if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: `<b>Fecha de picking</b>${l.fin ? (l.alerta === 'a_tiempo' ? ' · cumplida' : ' · aprobado después de esta fecha') : (l.alerta === 'vencido' ? ' · <span style="color:var(--color-bad);font-weight:600">VENCIDA sin aprobación</span>' : '')}`, d: l.alerta === 'vencido' || l.alerta === 'tarde' ? 'var(--tj-crimson)' : 'var(--color-fg-muted)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="14"><h3>${esc(l.lote)} · ${esc(l.producto)} · centro ${esc(l.centro || '—')}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="15"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !e.h.endsWith('23:59') ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proceso': 2, 'Por inspeccionar': 3, 'Listo': 4 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
+    const urgente = (l) => (l.alerta === 'vencido' || l.alerta === 'hoy' ? 1 : 0);
     return arr.slice().sort((a, b) => {
+      // Con el orden por defecto, los lotes con picking vencido o que vence hoy van primero.
+      if (k === 'ultimo_mov' && urgente(a) !== urgente(b)) return urgente(b) - urgente(a);
       const x = val(a), y = val(b);
       if (x == null && y == null) return 0;
       if (x == null) return 1;
@@ -380,7 +433,9 @@
 
   function pintar() {
     // Controles
-    for (const [id, campo] of [['f-tipo', 'tipo'], ['f-asig', 'asig']]) $(id).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F[campo])));
+    $('f-asig').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F.asig)));
+    $('f-tipo').value = F.tipo; if ($('f-tipo').value !== F.tipo) { F.tipo = 'Todos'; $('f-tipo').value = 'Todos'; }
+    $('f-picking').value = F.picking;
     $('f-periodo').value = F.periodo;
     document.querySelectorAll('#tabla th').forEach((th) => th.removeAttribute('aria-sort'));
     const thSort = document.querySelector(`#tabla th button[data-sort="${F.sort}"]`);
@@ -394,17 +449,20 @@
     const listos = base.filter((l) => l.estado === 'Listo').length;
     const rep = base.filter((l) => l.estado === 'Reproceso').length;
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
-    $('resumen').innerHTML = `<b>${base.length}</b> lotes con movimiento en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${pi}</b> asignados sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.`;
+    const alertas = base.filter((l) => l.alerta === 'vencido' || l.alerta === 'hoy').length;
+    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} con picking vencido o que vence hoy sin estar listos.</b>` : ''}`;
     $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + F.estado : ''})`;
 
-    if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="14" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
+    if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="15" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
     const filas = lista.slice(0, visibles).map((l) => {
       const abierto = abiertos.has(l.lote);
-      const cls = l.estado === 'Listo' ? 'tj-lista' : l.estado === 'Reproceso' ? 'tj-repro' : '';
+      const cls = l.estado === 'Listo' ? 'tj-lista' : (l.alerta === 'vencido' || l.alerta === 'hoy') ? 'tj-vencido' : l.estado === 'Reproceso' ? 'tj-repro' : '';
+      const tipLote = [l.pieza && `Pieza: ${l.pieza}`, l.determinacion && `Determinación: ${l.determinacion}`, l.picking && `Picking: ${dmy(l.picking)}`, l.producto].filter(Boolean).join('\n');
       const aprobado = l.estado === 'Listo';
       return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
-        <td class="tj-sticky"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod" title="${esc(l.producto)}">${esc(l.producto)}</span></td>
-        <td><span class="tj-tipo ${esc(l.tipo || 'Otro')}" title="Centro ${esc(l.centro)}">${esc(l.tipo || '—')}</span></td>
+        <td class="tj-sticky" title="${esc(tipLote)}"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod">${esc(l.producto)}</span></td>
+        <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}</span></td>
+        <td>${celdaPicking(l)}</td>
         <td class="tj-date">${dmy(l.entrada)}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
@@ -415,19 +473,23 @@
         <td class="tj-num">${diasTxt(l.d_total, l.abierto)}</td>
       </tr>${abierto ? detalle(l) : ''}`;
     });
-    if (lista.length > visibles) filas.push(`<tr><td colspan="14"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
+    if (lista.length > visibles) filas.push(`<tr><td colspan="15"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
     $('cuerpo').innerHTML = filas.join('');
   }
 
   // Eventos
   const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
-  $('f-tipo').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ tipo: b.dataset.v }); });
+  $('f-tipo').addEventListener('change', (e) => cambiar({ tipo: e.target.value }));
+  $('f-picking').addEventListener('change', (e) => cambiar({ picking: e.target.value }));
   $('f-asig').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ asig: b.dataset.v }); });
   $('f-periodo').addEventListener('change', (e) => cambiar({ periodo: e.target.value }));
   $('f-tecnico').addEventListener('change', (e) => cambiar({ tecnico: e.target.value }));
   let t; $('f-buscar').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => cambiar({ buscar: e.target.value }), 150); });
   $('f-reset').addEventListener('click', () => { $('f-buscar').value = ''; cambiar({ ...DEF }); });
-  $('kpis').addEventListener('click', (e) => { const b = e.target.closest('[data-estado]'); if (b) cambiar({ estado: F.estado === b.dataset.estado ? '' : b.dataset.estado }); });
+  $('kpis').addEventListener('click', (e) => {
+    const p = e.target.closest('[data-picking]'); if (p) { cambiar({ picking: F.picking === p.dataset.picking ? '' : p.dataset.picking }); return; }
+    const b = e.target.closest('[data-estado]'); if (b) cambiar({ estado: F.estado === b.dataset.estado ? '' : b.dataset.estado });
+  });
   document.querySelector('#tabla thead').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-sort]'); if (!b) return;
     const k = b.dataset.sort;

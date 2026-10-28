@@ -77,7 +77,11 @@
       centro: ['CENTRO'], resultado: ['RESULTADO'], reproceso: ['ÁREA A REPROCESAR'], obs: ['OBSERVACIONES'],
     },
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'] },
+    determinacion: { lote: ['Lote'], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
+  // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
+  const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
+  const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
@@ -88,7 +92,7 @@
     for (const n of Object.keys(MAPAS)) {
       if (!values[n]) { t[n] = { rows: [], faltan: [] }; continue; }
       t[n] = tabla(values[n], MAPAS[n]);
-      const req = n === 'inventario' ? ['lote', 'fecha'] : ['lote', 'fecha'];
+      const req = n === 'determinacion' ? ['lote', 'asignacion'] : ['lote', 'fecha'];
       const falt = t[n].faltan.filter((c) => req.includes(c));
       if (falt.length) avisos.push(`La hoja ${n} no tiene las columnas: ${falt.join(', ')}`);
     }
@@ -116,6 +120,14 @@
       const fecha = isoDate(r.fecha) || isoDate(r.fecha_hora);
       if (!fecha) continue;
       get(l).insp.push({ ...r, fecha, dt: isoDT(r.fecha_hora, r.fecha), resultado: norm(r.resultado) });
+    }
+    // Determinación: todo lote que aparezca ahí se sigue, aunque nadie lo haya registrado (p. ej. los que están en proveedor).
+    const det = new Map();
+    for (const r of t.determinacion.rows) {
+      const l = loteNorm(r.lote);
+      if (!esLote(l)) continue;
+      get(l);
+      det.set(l, { asignacion: norm(r.asignacion), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
     }
     // Inventario: solo para los lotes que se siguen (fechas de entrada, centro y producto).
     const inv = new Map();
@@ -167,6 +179,7 @@
         celdas[A.id] = { estado, tecnicos, ultima, asignado, piezasAsig, regs, piezas: regs.reduce((s, r) => s + (r.piezas || 0), 0) };
       }
 
+      const D = det.get(L.lote) || null;
       let estado;
       if (insp && insp.resultado === 'APROBADO') estado = 'Listo';
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
@@ -174,16 +187,35 @@
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
         estado = celdas.emp.estado === 'azul' || completas ? 'Por inspeccionar' : 'En proceso';
-      } else if (asig) estado = 'Por iniciar';
+      } else if (D && D.asignacion === 'PROVEEDOR') estado = 'En proveedor';
       else estado = 'Por iniciar';
 
       const fin = aprobado ? insp.fecha : null;
+      // Alerta de picking: el lote debe estar listo (inspección APROBADO) a más tardar en la fecha de picking.
+      const picking = D ? D.picking : null;
+      let alerta = null;
+      const dPick = picking ? dias(hoy, picking) : null;
+      if (picking) {
+        if (fin) alerta = fin <= picking ? 'a_tiempo' : 'tarde';
+        else if (dPick < 0) alerta = 'vencido';
+        else if (dPick === 0) alerta = 'hoy';
+        else if (dPick <= DIAS_AVISO) alerta = 'proximo';
+        else alerta = 'en_plazo';
+      }
+      const tipoBase = tipoCentro(centro || (entrada && entrada.centro) || '');
+      const tipo = D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
       const fechas = [asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha)].filter(Boolean).sort();
       out.push({
         lote: L.lote,
         producto,
         centro,
-        tipo: tipoCentro(centro),
+        tipo,
+        determinacion: D ? D.asignacion : '',
+        pieza: D ? D.pieza : '',
+        picking,
+        picking_txt: D ? D.picking_txt : '',
+        alerta,
+        d_picking: dPick,
         entrada: entrada ? entrada.fecha : null,
         entradas: entradas.map((e) => e.fecha),
         asignacion: asig ? asig.fecha : null,
