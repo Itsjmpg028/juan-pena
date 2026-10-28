@@ -499,7 +499,7 @@
     const activo = F.picking === 'vencido';
     el.hidden = false;
     el.innerHTML = `<b class="n">${inc.length}</b>
-      <div class="t"><strong>Incumplimientos de fecha de picking</strong>
+      <div class="t"><strong>Incumplimientos de fecha de picking${S.CORTE_ALERTAS ? ` (picking desde el ${dmy(S.CORTE_ALERTAS)})` : ''}</strong>
       <span>${prov} en proveedor sin devolver · ${sinEnv} sin enviar a proveedor · ${taller} sin terminar en el taller · mayor retraso: lote ${esc(peor.lote)} con ${peor.retraso} días</span></div>
       <button type="button" id="ver-incumple" aria-pressed="${activo}">${activo ? 'Quitar filtro' : 'Ver incumplimientos'}</button>`;
   }
