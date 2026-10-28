@@ -111,7 +111,7 @@
   // Codes 101 (zona de dudas) and 102 (forros) may repeat: each registro counts 1. Any other value that is not a
   // 6–8 digit lote (CP, x, 5s…) also counts 1 and is marked "Lote por revisar".
   // A lote typed with the year stuck at the end (17340252026) is read without the "2026".
-  const loteNorm = (l) => { let s = String(l ?? '').trim(); if (/^\d{9,}2026$/.test(s)) s = s.slice(0, -4); return s; };
+  const loteNorm = (l) => { let s = String(l ?? '').trim(); if (/^\d{6,8}2026$/.test(s)) s = s.slice(0, -4); return s; };
   dash.calc('registros_lotes', {
     title: 'Registros contados como lote',
     description: 'Cada registro marcado: Cuenta (primer registro del lote en esa área y tipo), Repetido (no suma), Repetible 101/102 (suma siempre) o Lote por revisar (suma 1).',

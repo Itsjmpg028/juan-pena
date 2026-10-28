@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seguimiento de lotes</title>
+<meta name="description" content="Trazabilidad de cada lote del taller: entrada, asignación, áreas, inspección de calidad y tiempos.">
+<meta name="theme-color" content="#1F2937">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="tokens.css?v=7">
+<style>
+  .tj {
+    --tj-crimson: #D2132C;
+    --tj-ink: #1F2937;
+    --tj-crimson-soft: color-mix(in srgb, #D2132C 12%, var(--color-panel));
+    /* Estados de las celdas */
+    --st-verde-bg: color-mix(in srgb, var(--color-ok) 16%, var(--color-panel));
+    --st-verde-fg: var(--color-ok);
+    --st-rojo-bg: color-mix(in srgb, var(--tj-crimson) 14%, var(--color-panel));
+    --st-rojo-fg: var(--color-bad);
+    --st-sinreg-bg: color-mix(in srgb, var(--color-warn) 18%, var(--color-panel));
+    --st-sinreg-fg: var(--color-warn);
+    --st-gris-bg: color-mix(in srgb, var(--color-fg) 5%, var(--color-panel));
+    --st-gris-fg: var(--color-fg-muted);
+    --st-fila-lista: color-mix(in srgb, var(--color-ok) 6%, var(--color-panel));
+    display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg);
+  }
+  .tj-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tj-nav a { font-size: var(--cds-font-size-caption); color: rgba(255,255,255,.78); text-decoration: none; padding: 3px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); }
+  .tj-nav a[aria-current="page"] { background: var(--tj-crimson); border-color: var(--tj-crimson); color: #fff; font-weight: 600; }
+  .tj-nav a:hover { border-color: #fff; color: #fff; }
+  .tj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
+  .tj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
+  .tj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+  .tj-eyebrow b { color: #fff; font-weight: 700; letter-spacing: .14em; }
+  .tj-eyebrow i { width: 8px; height: 8px; background: var(--tj-crimson); border-radius: 2px; display: inline-block; }
+  .tj-hero h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; color: #fff; }
+  .tj-takeaway { margin: 0; color: rgba(255,255,255,.78); max-width: 80ch; }
+  .tj-takeaway b { color: #fff; font-weight: 600; }
+
+  .tj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: var(--cds-gap-sm); }
+  .tj-kpi { font: inherit; text-align: left; color: inherit; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: grid; gap: 2px; cursor: pointer; position: relative; }
+  .tj-kpi::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 0 3px 3px 0; background: var(--k, var(--tj-ink)); }
+  .tj-kpi span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-kpi b { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tj-kpi small { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-kpi[aria-pressed="true"] { border-color: var(--tj-crimson); box-shadow: inset 0 0 0 1px var(--tj-crimson); }
+  .tj-kpi.tj-info { cursor: default; }
+
+  .tj-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); align-items: end; }
+  .tj-field { display: grid; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-width: 0; }
+  .tj-field select, .tj-field input { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 10px; max-width: 100%; }
+  .tj-field input { width: min(100%, 15rem); }
+  .tj :is(select, button, input, a):focus-visible { outline: 2px solid var(--tj-crimson); outline-offset: 1px; }
+  .tj-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; background: var(--color-panel); }
+  .tj-seg button { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 12px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+  .tj-reset { font: inherit; padding: 6px 12px; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: transparent; color: var(--color-fg); cursor: pointer; }
+
+  .tj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; }
+  .tj-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--cds-gap-sm); }
+  .tj-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: 600; }
+  .tj-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .tj-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid var(--color-border-line); }
+
+  .tj-scroll { overflow: auto; max-height: 72vh; border: 1px solid var(--color-border-line); border-radius: 8px; }
+  .tj-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .tj-table th { position: sticky; top: 0; z-index: 2; background: var(--color-panel); text-align: left; font-weight: 600; color: var(--color-fg-muted); border-bottom: 2px solid var(--tj-ink); padding: 8px 8px; white-space: nowrap; }
+  .tj-table th.tj-grp { text-align: center; }
+  .tj-table th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .tj-table th[aria-sort] button { color: var(--color-fg); }
+  .tj-table th[aria-sort="ascending"] button::after { content: " ▲"; font-size: .7em; }
+  .tj-table th[aria-sort="descending"] button::after { content: " ▼"; font-size: .7em; }
+  .tj-table td { padding: 5px 6px; border-bottom: 1px solid var(--color-border-line); vertical-align: middle; }
+  .tj-table td.tj-num, .tj-table th.tj-num { text-align: right; }
+  .tj-table .tj-sticky { position: sticky; left: 0; z-index: 1; background: var(--color-panel); box-shadow: 1px 0 0 var(--color-border-line); }
+  .tj-table th.tj-sticky { z-index: 3; }
+  .tj-table tr.tj-lista td { background: var(--st-fila-lista); }
+  .tj-table tr.tj-lista td.tj-sticky { background: var(--st-verde-bg); box-shadow: inset 4px 0 0 var(--color-ok), 1px 0 0 var(--color-border-line); }
+  .tj-table tr.tj-repro td.tj-sticky { box-shadow: inset 4px 0 0 var(--color-bad), 1px 0 0 var(--color-border-line); }
+  .tj-lote { font: inherit; font-size: var(--cds-font-size-body); font-weight: 700; color: var(--color-fg); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; white-space: nowrap; }
+  .tj-lote::before { content: "▸ "; color: var(--color-fg-muted); font-weight: 400; }
+  tr[aria-expanded="true"] .tj-lote::before { content: "▾ "; }
+  .tj-prod { display: block; color: var(--color-fg-muted); max-width: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; }
+  .tj-tipo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; border: 1px solid currentColor; }
+  .tj-tipo.Taller { color: var(--tj-ink); } .tj-tipo.Venta { color: var(--tj-crimson); } .tj-tipo.Otro { color: var(--color-fg-muted); }
+  @media (prefers-color-scheme: dark) { .tj-tipo.Taller { color: var(--color-fg); } }
+  .tj-date { white-space: nowrap; }
+
+  .tj-c { border-radius: 6px; padding: 4px 7px; min-width: 7.2rem; line-height: 1.25; }
+  .tj-c b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 9rem; }
+  .tj-c small { display: block; white-space: nowrap; }
+  .tj-c.verde { background: var(--st-verde-bg); color: var(--st-verde-fg); }
+  .tj-c.verde b { color: var(--color-fg); }
+  .tj-c.rojo, .tj-c.reproceso { background: var(--st-rojo-bg); color: var(--st-rojo-fg); }
+  .tj-c.rojo b, .tj-c.reproceso b { color: var(--color-fg); }
+  .tj-c.sinreg { background: var(--st-sinreg-bg); color: var(--st-sinreg-fg); }
+  .tj-c.sinreg b { color: var(--color-fg); }
+  .tj-c.gris { background: var(--st-gris-bg); color: var(--st-gris-fg); text-align: center; min-width: 4.5rem; }
+  .tj-c.pend { background: transparent; border: 1px dashed var(--color-border-line); color: var(--color-fg-muted); text-align: center; min-width: 4.5rem; }
+  .tj-orig { display: inline-block; font-size: .64rem; letter-spacing: .04em; font-weight: 700; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 4px; }
+  .tj-abierto { color: var(--color-fg-muted); font-style: italic; }
+  .tj-estado { font-weight: 600; white-space: nowrap; }
+  .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
+  .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
+
+  .tj-det td { background: var(--color-bg) !important; padding: 10px 14px 14px; }
+  .tj-det h3 { margin: 4px 0 6px; font-size: var(--cds-font-size-caption); text-transform: uppercase; letter-spacing: .06em; color: var(--color-fg-muted); }
+  .tj-tl { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--color-border-line); display: grid; gap: 6px; }
+  .tj-tl li { position: relative; font-size: var(--cds-font-size-caption); }
+  .tj-tl li::before { content: ""; position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--d, var(--color-fg-muted)); border: 2px solid var(--color-bg); }
+  .tj-tl b { font-weight: 600; }
+  .tj-more { font: inherit; margin: 8px auto 0; display: block; padding: 6px 14px; border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; }
+  .tj-msg { padding: 24px; text-align: center; color: var(--color-fg-muted); }
+  .tj-err { border: 1px solid var(--color-bad); color: var(--color-bad); background: var(--st-rojo-bg); border-radius: var(--cds-radius); padding: 10px 14px; font-size: var(--cds-font-size-caption); }
+  .tj-err:empty { display: none; }
+  .tj-foot { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
+</style>
+</head>
+<body>
+<main id="dash-root">
+<div class="tj">
+  <header class="tj-hero">
+    <nav class="tj-nav" aria-label="Tableros">
+      <a href="index.html">Productividad</a>
+      <a href="seguimiento.html" aria-current="page">Seguimiento de lotes</a>
+    </nav>
+    <div class="tj-eyebrow"><i></i><b>Jamar</b><span>Plataforma Galapa · trazabilidad del taller</span></div>
+    <h1>Seguimiento de lotes</h1>
+    <p class="tj-takeaway" id="resumen">Cargando datos del libro APP JAMAR…</p>
+    <div class="tj-updated"><span id="tj-actualizado">Cargando…</span><button type="button" id="tj-refrescar">Actualizar ahora</button></div>
+  </header>
+
+  <div class="tj-err" id="errores" role="alert"></div>
+
+  <section class="tj-kpis" id="kpis" aria-label="Lotes por estado"></section>
+
+  <div class="tj-filters">
+    <label class="tj-field" for="f-buscar">Buscar lote o producto
+      <input id="f-buscar" type="search" placeholder="Ej. 1882038 o comedor" autocomplete="off">
+    </label>
+    <div class="tj-field">Tipo
+      <div class="tj-seg" id="f-tipo" role="group" aria-label="Tipo">
+        <button type="button" data-v="Todos">Todos</button><button type="button" data-v="Taller">Taller</button><button type="button" data-v="Venta">Venta</button>
+      </div>
+    </div>
+    <div class="tj-field">Asignación
+      <div class="tj-seg" id="f-asig" role="group" aria-label="Asignación">
+        <button type="button" data-v="Todos">Todos</button><button type="button" data-v="Con">Con asignación</button><button type="button" data-v="Sin">Sin asignación</button>
+      </div>
+    </div>
+    <label class="tj-field" for="f-periodo">Último movimiento
+      <select id="f-periodo">
+        <option value="7">Últimos 7 días</option>
+        <option value="15">Últimos 15 días</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="60">Últimos 60 días</option>
+        <option value="90">Últimos 90 días</option>
+        <option value="0">Todo (desde julio)</option>
+      </select>
+    </label>
+    <label class="tj-field" for="f-tecnico">Técnico
+      <select id="f-tecnico"><option value="">Todos</option></select>
+    </label>
+    <button type="button" class="tj-reset" id="f-reset">Restablecer</button>
+  </div>
+
+  <section class="tj-card">
+    <div class="tj-card-head">
+      <h2 id="t-titulo">Lotes</h2>
+      <div class="tj-legend" aria-label="Convenciones">
+        <span><i style="background:var(--st-rojo-bg);border-color:var(--color-bad)"></i>Asignado, sin registrar</span>
+        <span><i style="background:var(--st-verde-bg);border-color:var(--color-ok)"></i>Registrado / aprobado</span>
+        <span><i style="background:var(--st-sinreg-bg);border-color:var(--color-warn)"></i>Inspeccionado sin registro del técnico</span>
+        <span><i style="background:var(--st-gris-bg)"></i>No participó</span>
+      </div>
+    </div>
+    <div class="tj-scroll">
+      <table class="tj-table" id="tabla">
+        <thead>
+          <tr>
+            <th class="tj-sticky"><button type="button" data-sort="lote">Lote</button></th>
+            <th>Tipo</th>
+            <th><button type="button" data-sort="entrada">Fecha de ingreso</button></th>
+            <th><button type="button" data-sort="asignacion">Asignación</button></th>
+            <th>Ebanistería</th>
+            <th>Acabados</th>
+            <th>Costura</th>
+            <th>Tapicería</th>
+            <th>Empaque</th>
+            <th>Inspección</th>
+            <th><button type="button" data-sort="estado">Estado</button></th>
+            <th class="tj-num" title="Días entre la fecha de ingreso y la asignación (o el primer registro si no se asignó)"><button type="button" data-sort="d_entrada_inicio">Ingreso → asig.</button></th>
+            <th class="tj-num" title="Días entre la asignación (o primer registro) y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_inicio_fin">Asig. → listo</button></th>
+            <th class="tj-num" title="Días entre la fecha de ingreso y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_total">Total</button></th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo"><tr><td colspan="14" class="tj-msg">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="tj-foot">Días calendario. En cursiva: lote todavía abierto (se cuenta hasta hoy). Toca un lote para ver su recorrido completo.</p>
+  </section>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="seguimiento-calcs.js?v=1"></script>
+<script>
+(function () {
+  const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRlQhy6LzGfbp4m05VwMLxzbL-0696oM7sXXApF_HbIlK6ZiHY8D1tb5LjWjBaoeg26kzYJUw6AQGPw/pub?single=true&output=csv&gid=';
+  const FUENTES = {
+    registros: { gid: 227315461, hoja: 'Registro de PrOD', requerida: true },
+    asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
+    inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
+    inventario: { gid: 0, hoja: 'Inventario', requerida: false, cadaMin: 30 },
+  };
+  const REFRESCO_MIN = 5;
+  const PAGINA = 150;
+  const $ = (id) => document.getElementById(id);
+  const S = window.Seguimiento;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  const corto = (n) => titulo(String(n || '').split(/\s+/).slice(0, 2).join(' '));
+  const dm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
+  const dmy = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '—');
+  const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const restar = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // Filtros (se recuerdan en este navegador)
+  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', tecnico: '', estado: '', sort: 'ultimo_mov', dir: -1 };
+  let F = { ...DEF };
+  try { const s = JSON.parse(localStorage.getItem('tj-seg-filtros') || 'null'); if (s) F = { ...DEF, ...s, buscar: '', estado: '' }; } catch (e) { /* sin almacenamiento */ }
+  const guardar = () => { try { const { tipo, asig, periodo, tecnico, sort, dir } = F; localStorage.setItem('tj-seg-filtros', JSON.stringify({ tipo, asig, periodo, tecnico, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
+
+  const crudo = {};
+  let datos = { lotes: [], avisos: [] };
+  let visibles = PAGINA;
+  const abiertos = new Set();
+  let ultimaCarga = null, ultimaInv = 0;
+
+  async function traer(id) {
+    const f = FUENTES[id];
+    const res = await fetch(BASE + f.gid + '&_t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
+    return d3.csvParseRows(text);
+  }
+
+  async function cargar(forzarInv) {
+    const ahora = Date.now();
+    const ids = Object.keys(FUENTES).filter((id) => {
+      const f = FUENTES[id];
+      if (!f.cadaMin || forzarInv || !crudo[id]) return true;
+      return ahora - ultimaInv > f.cadaMin * 60000;
+    });
+    const errores = [];
+    await Promise.all(ids.map(async (id) => {
+      try { crudo[id] = await traer(id); if (id === 'inventario') ultimaInv = Date.now(); }
+      catch (err) { console.error(id, err); errores.push(id); }
+    }));
+    const faltan = Object.keys(FUENTES).filter((id) => FUENTES[id].requerida && !crudo[id]);
+    const msgs = [];
+    for (const id of errores) {
+      const f = FUENTES[id];
+      msgs.push(`No se pudo leer la hoja <b>${esc(f.hoja)}</b>${f.requerida ? '' : ' (las fechas de ingreso quedan vacías)'}. Revisa que esté publicada: Archivo → Compartir → Publicar en la web → hoja "${esc(f.hoja)}" → Valores separados por comas (.csv).`);
+    }
+    if (!faltan.length) {
+      datos = S.construir(crudo, hoyISO());
+      msgs.push(...datos.avisos.map(esc));
+      ultimaCarga = new Date();
+    }
+    $('errores').innerHTML = msgs.join('<br>');
+    $('tj-actualizado').textContent = ultimaCarga
+      ? `Datos del ${ultimaCarga.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })} a las ${ultimaCarga.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })} · se actualiza cada ${REFRESCO_MIN} min`
+      : 'No se pudieron cargar los datos. Se reintenta en unos minutos.';
+    opcionesTecnico();
+    pintar();
+  }
+
+  function opcionesTecnico() {
+    const sel = $('f-tecnico');
+    const nombres = [...new Set(datos.lotes.flatMap((l) => l.tecnicos))].sort();
+    const actual = F.tecnico;
+    sel.innerHTML = '<option value="">Todos</option>' + nombres.map((n) => `<option value="${esc(n)}">${esc(titulo(n))}</option>`).join('');
+    sel.value = nombres.includes(actual) ? actual : '';
+  }
+
+  const ESTADOS = [
+    { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Asignados sin registros' },
+    { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
+    { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
+    { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
+    { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada' },
+  ];
+
+  function filtrar(sinEstado) {
+    const desde = F.periodo === '0' ? '' : restar(hoyISO(), Number(F.periodo));
+    const q = F.buscar.trim().toLowerCase();
+    return datos.lotes.filter((l) => {
+      if (desde && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
+      if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
+      if (F.asig === 'Con' && !l.asignacion) return false;
+      if (F.asig === 'Sin' && l.asignacion) return false;
+      if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
+      if (!sinEstado && F.estado && l.estado !== F.estado) return false;
+      if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function kpis(base) {
+    const n = (e) => base.filter((l) => l.estado === e).length;
+    const listos = base.filter((l) => l.estado === 'Listo' && l.d_total != null);
+    const prom = listos.length ? Math.round(listos.reduce((s, l) => s + l.d_total, 0) / listos.length) : null;
+    const listosAsig = base.filter((l) => l.estado === 'Listo' && l.asignacion && l.d_inicio_fin != null);
+    const promA = listosAsig.length ? Math.round(listosAsig.reduce((s, l) => s + l.d_inicio_fin, 0) / listosAsig.length) : null;
+    $('kpis').innerHTML =
+      `<button type="button" class="tj-kpi" data-estado="" aria-pressed="${!F.estado}" style="--k:var(--color-fg)"><span>Lotes en el periodo</span><b>${base.length}</b><small>${base.filter((l) => l.asignacion).length} con asignación</small></button>` +
+      ESTADOS.map((e) => `<button type="button" class="tj-kpi" data-estado="${e.id}" aria-pressed="${F.estado === e.id}" style="--k:${e.k}"><span>${e.id}</span><b>${n(e.id)}</b><small>${e.d}</small></button>`).join('') +
+      `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>`;
+  }
+
+  function celda(c, aprobado) {
+    if (c.estado === 'gris') return '<div class="tj-c gris">—</div>';
+    const det = c.regs.map((r) => `${dmy(r.fecha)} · ${titulo(r.tecnico)} · ${r.pieza || ''} (${r.piezas ?? '?'} pz)`).join('\n');
+    if (c.estado === 'verde') {
+      const nom = c.tecnicos.map(corto);
+      const extra = nom.length > 1 ? ` +${nom.length - 1}` : '';
+      const asigOtro = c.asignado && !c.tecnicos.includes(c.asignado) ? `\nAsignado a: ${titulo(c.asignado)}` : '';
+      return `<div class="tj-c verde" title="${esc(det + asigOtro)}"><b>${esc(nom[0] || '')}${extra}</b><small>${dm(c.ultima)}</small></div>`;
+    }
+    if (c.estado === 'reproceso') return `<div class="tj-c reproceso" title="${esc('Calidad pidió reproceso en esta área\n' + det)}"><b>Reproceso</b><small>${esc(corto(c.tecnicos[0] || c.asignado) || 'pendiente')}</small></div>`;
+    if (c.estado === 'sinreg') return `<div class="tj-c sinreg" title="${esc('Asignado a ' + titulo(c.asignado) + '. El lote se inspeccionó, pero este técnico no registró su trabajo.')}"><b>${esc(corto(c.asignado))}</b><small>No registró</small></div>`;
+    return `<div class="tj-c rojo" title="${esc('Asignado a ' + titulo(c.asignado) + (c.piezasAsig != null ? ` · ${c.piezasAsig} pz` : ''))}"><b>${esc(corto(c.asignado))}</b><small>Asignado</small></div>`;
+  }
+
+  function celdaInsp(l) {
+    const i = l.insp;
+    if (!i) return '<div class="tj-c pend">Pendiente</div>';
+    const orig = i.origen ? `<span class="tj-orig">${esc(i.origen)}</span>` : '';
+    const tip = `${titulo(i.inspector)} · ${dmy(i.fecha)}${i.reproceso ? '\nReprocesar: ' + i.reproceso : ''}${i.obs ? '\n' + i.obs : ''}${l.inspecciones.length > 1 ? `\n${l.inspecciones.length} inspecciones` : ''}`;
+    if (i.resultado === 'APROBADO') return `<div class="tj-c verde" title="${esc(tip)}"><b>Aprobado${orig}</b><small>${esc(corto(i.inspector))} · ${dm(i.fecha)}</small></div>`;
+    return `<div class="tj-c reproceso" title="${esc(tip)}"><b>Reproceso${orig}</b><small>${esc(titulo(i.reproceso || ''))} · ${dm(i.fecha)}</small></div>`;
+  }
+
+  const diasTxt = (n, abierto) => (n == null ? '<span class="tj-muted">—</span>' : abierto ? `<span class="tj-abierto">${n}</span>` : String(n));
+
+  function detalle(l) {
+    const ev = [];
+    if (l.entrada) ev.push({ f: l.entrada, t: `<b>Ingreso</b> a inventario (Fe.contabilización)${l.entradas.length > 1 ? ` · entradas registradas: ${l.entradas.map(dmy).join(', ')}` : ''}`, d: 'var(--tj-ink)' });
+    if (l.asignacion) {
+      const a = [l.celdas.eban.asignado && `Ebanistería: ${titulo(l.celdas.eban.asignado)}${l.celdas.eban.piezasAsig != null ? ` (${l.celdas.eban.piezasAsig} pz)` : ''}`, l.celdas.tapi.asignado && `Tapicería: ${titulo(l.celdas.tapi.asignado)}${l.celdas.tapi.piezasAsig != null ? ` (${l.celdas.tapi.piezasAsig} pz)` : ''}`].filter(Boolean).join(' · ');
+      ev.push({ f: l.asignacion, t: `<b>Asignación</b> · ${esc(a)}${l.asignaciones > 1 ? ` · reasignado ${l.asignaciones - 1} vez/veces` : ''}`, d: 'var(--color-bad)' });
+    }
+    for (const r of l.regs) {
+      const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
+      ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: 'var(--color-ok)' });
+    }
+    for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
+    ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
+    return `<tr class="tj-det"><td colspan="14"><h3>${esc(l.lote)} · ${esc(l.producto)} · centro ${esc(l.centro || '—')}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+  }
+
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proceso': 2, 'Por inspeccionar': 3, 'Listo': 4 };
+  function ordenar(arr) {
+    const k = F.sort, d = F.dir;
+    const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
+    return arr.slice().sort((a, b) => {
+      const x = val(a), y = val(b);
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return (x < y ? -1 : x > y ? 1 : 0) * d;
+    });
+  }
+
+  function pintar() {
+    // Controles
+    for (const [id, campo] of [['f-tipo', 'tipo'], ['f-asig', 'asig']]) $(id).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F[campo])));
+    $('f-periodo').value = F.periodo;
+    document.querySelectorAll('#tabla th').forEach((th) => th.removeAttribute('aria-sort'));
+    const thSort = document.querySelector(`#tabla th button[data-sort="${F.sort}"]`);
+    if (thSort) thSort.parentElement.setAttribute('aria-sort', F.dir > 0 ? 'ascending' : 'descending');
+
+    if (!ultimaCarga) return;
+    const base = filtrar(true);
+    kpis(base);
+    const lista = ordenar(filtrar(false));
+    const nTotal = datos.lotes.length;
+    const listos = base.filter((l) => l.estado === 'Listo').length;
+    const rep = base.filter((l) => l.estado === 'Reproceso').length;
+    const pi = base.filter((l) => l.estado === 'Por iniciar').length;
+    $('resumen').innerHTML = `<b>${base.length}</b> lotes con movimiento en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${pi}</b> asignados sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.`;
+    $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + F.estado : ''})`;
+
+    if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="14" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
+    const filas = lista.slice(0, visibles).map((l) => {
+      const abierto = abiertos.has(l.lote);
+      const cls = l.estado === 'Listo' ? 'tj-lista' : l.estado === 'Reproceso' ? 'tj-repro' : '';
+      const aprobado = l.estado === 'Listo';
+      return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
+        <td class="tj-sticky"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod" title="${esc(l.producto)}">${esc(l.producto)}</span></td>
+        <td><span class="tj-tipo ${esc(l.tipo || 'Otro')}" title="Centro ${esc(l.centro)}">${esc(l.tipo || '—')}</span></td>
+        <td class="tj-date">${dmy(l.entrada)}</td>
+        <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
+        ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
+        <td>${celdaInsp(l)}</td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span></td>
+        <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
+        <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>
+        <td class="tj-num">${diasTxt(l.d_total, l.abierto)}</td>
+      </tr>${abierto ? detalle(l) : ''}`;
+    });
+    if (lista.length > visibles) filas.push(`<tr><td colspan="14"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
+    $('cuerpo').innerHTML = filas.join('');
+  }
+
+  // Eventos
+  const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
+  $('f-tipo').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ tipo: b.dataset.v }); });
+  $('f-asig').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ asig: b.dataset.v }); });
+  $('f-periodo').addEventListener('change', (e) => cambiar({ periodo: e.target.value }));
+  $('f-tecnico').addEventListener('change', (e) => cambiar({ tecnico: e.target.value }));
+  let t; $('f-buscar').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => cambiar({ buscar: e.target.value }), 150); });
+  $('f-reset').addEventListener('click', () => { $('f-buscar').value = ''; cambiar({ ...DEF }); });
+  $('kpis').addEventListener('click', (e) => { const b = e.target.closest('[data-estado]'); if (b) cambiar({ estado: F.estado === b.dataset.estado ? '' : b.dataset.estado }); });
+  document.querySelector('#tabla thead').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-sort]'); if (!b) return;
+    const k = b.dataset.sort;
+    cambiar({ sort: k, dir: F.sort === k ? -F.dir : (k === 'lote' || k === 'estado' ? 1 : -1) });
+  });
+  $('cuerpo').addEventListener('click', (e) => {
+    if (e.target.id === 'mas') { visibles += PAGINA; pintar(); return; }
+    const b = e.target.closest('.tj-lote'); if (!b) return;
+    const lote = b.closest('tr').dataset.lote;
+    if (abiertos.has(lote)) abiertos.delete(lote); else abiertos.add(lote);
+    pintar();
+  });
+  $('tj-refrescar').addEventListener('click', () => cargar(true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(false); });
+  setInterval(() => cargar(false), REFRESCO_MIN * 60000);
+  pintar();
+  cargar(true);
+})();
+</script>
+</body>
+</html>

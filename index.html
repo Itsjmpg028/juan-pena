@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="tokens.css?v=6">
+<link rel="stylesheet" href="tokens.css?v=7">
 <style>
   /* Jamar: carmesí #D2132C, carbón #1F2937, blanco. Carbón para la marca y los datos; carmesí para la meta y lo seleccionado. */
   .tj {
@@ -21,6 +21,10 @@
     display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg);
   }
 
+  .tj-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tj-nav a { font-size: var(--cds-font-size-caption); color: rgba(255,255,255,.78); text-decoration: none; padding: 3px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); }
+  .tj-nav a[aria-current="page"] { background: var(--tj-crimson); border-color: var(--tj-crimson); color: #fff; font-weight: 600; }
+  .tj-nav a:hover { border-color: #fff; color: #fff; }
   .tj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
   .tj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
   .tj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .72); }
@@ -146,6 +150,7 @@
 <main id="dash-root">
 <div class="tj">
   <header class="tj-hero" id="inicio">
+    <nav class="tj-nav" aria-label="Tableros"><a href="index.html" aria-current="page">Productividad</a><a href="seguimiento.html">Seguimiento de lotes</a></nav>
     <div class="tj-eyebrow"><i></i><b>Jamar</b><span>Taller de reacondicionamiento</span></div>
     <h1 id="titulo">Dashboard de seguimiento taller</h1>
     <p class="tj-takeaway" id="resumen" data-source="resumen_tecnico"><span class="dash-skeleton">—</span></p>
@@ -304,8 +309,8 @@
 
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="shim.js?v=6"></script>
-<script src="calcs.js?v=6"></script>
+<script src="shim.js?v=7"></script>
+<script src="calcs.js?v=7"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
