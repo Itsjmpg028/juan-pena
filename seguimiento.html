@@ -497,7 +497,7 @@
       const aprobado = l.estado === 'Listo';
       return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
         <td class="tj-sticky" title="${esc(tipLote)}"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod">${esc(l.producto)}</span></td>
-        <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}</span></td>
+        <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}${l.cambio_plataforma ? '\nCambiado a Taller plataforma: estaba determinado a proveedor, no tiene envío (161) y ya tiene trabajo registrado en el taller.' : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}${l.cambio_plataforma ? '*' : ''}</span></td>
         <td>${celdaPicking(l)}</td>
         <td class="tj-date">${dmy(l.entrada)}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>

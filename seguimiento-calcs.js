@@ -239,7 +239,10 @@
         else alerta = 'en_plazo';
       }
       const tipoBase = tipoCentro(centro || (entrada && entrada.centro) || '');
-      const tipo = D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
+      // Determinado a PROVEEDOR, sin envío (161) y con trabajo registrado en el taller: se reparó en la plataforma
+      // (cambio de estrategia interno), así que se muestra como Taller plataforma.
+      const cambioPlataforma = !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && L.regs.length);
+      const tipo = cambioPlataforma ? 'Taller plataforma' : D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
       const fechas = [asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha), ...movs.map((m) => m.fecha)].filter(Boolean).sort();
       out.push({
         lote: L.lote,
@@ -257,7 +260,8 @@
         salida_mov: salida ? salida.mov : null,
         envio_prov: envioProv,
         // Determinado a proveedor pero sin movimiento 161 (todavía no se ha enviado).
-        sin_envio_prov: !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && !salida),
+        sin_envio_prov: !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && !salida && !cambioPlataforma),
+        cambio_plataforma: cambioPlataforma,
         movs,
         listo,
         d_listo_salida: dListoSalida,
