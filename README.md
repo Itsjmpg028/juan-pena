@@ -39,5 +39,6 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
   - 939 = traslado (venta): estado "Trasladado" con la fecha.
 - Última columna "Listo → salida": días desde que el lote quedó listo (inspección APROBADO; si no hay, primer empaque) hasta la primera salida 601 o 939. Si sigue en la plataforma, se cuenta hasta hoy (en cursiva). Tarjeta "Promedio listo → salida".
 - Filtro Estado: Listos (aprobados por calidad), Listos para picking (aprobados o empacados), No listos y cada estado. Los lotes con picking pendiente se muestran aunque no tengan movimiento reciente, y los vencidos o que vencen hoy van primero.
+- Código del producto: la hoja *Ingresos* trae también *Material* (columna I de Inventario). Se ve al pasar el cursor sobre el lote, en el encabezado del recorrido desplegado y en el Excel ("Código material").
 - Al pasar el cursor sobre el lote se ve la PIEZA, la determinación y la fecha de picking.
 - Botón **Descargar Excel**: exporta a .xlsx todos los lotes que cumplen los filtros actuales (no solo los visibles), en el orden de la tabla. Hoja *Lotes* (44 columnas, fechas reales de Excel, autofiltro) y hoja *Filtros* (filtros aplicados, fecha de generación y notas). Usa SheetJS 0.18.5 desde cdnjs, cargado al hacer clic.

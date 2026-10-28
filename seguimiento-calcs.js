@@ -76,7 +76,7 @@
       fecha: ['FECHA'], fecha_hora: ['FECHA HORA'], inspector: ['INSPECTOR'], origen: ['ORIGEN'], lote: ['Lote'], producto: ['PRODUCTO'],
       centro: ['CENTRO'], resultado: ['RESULTADO'], reproceso: ['ÁREA A REPROCESAR'], obs: ['OBSERVACIONES'],
     },
-    inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'] },
+    inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'], material: ['Material'] },
     traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'], mov: ['Clase de movimiento'] },
     determinacion: { lote: ['Lote'], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
@@ -152,7 +152,7 @@
       const fecha = isoDate(r.fecha);
       if (!fecha) continue;
       if (!inv.has(l)) inv.set(l, []);
-      inv.get(l).push({ fecha, centro: r.centro, producto: r.producto });
+      inv.get(l).push({ fecha, centro: r.centro, producto: r.producto, material: r.material });
     }
 
     const out = [];
@@ -248,6 +248,8 @@
       out.push({
         lote: L.lote,
         producto,
+        // Código del producto (Material de SAP) tomado de la hoja Ingresos.
+        material: (entrada && entrada.material) || (entradas.find((e) => e.material) || {}).material || '',
         centro,
         tipo,
         determinacion: D ? D.asignacion : '',

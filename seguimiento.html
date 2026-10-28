@@ -483,7 +483,7 @@
     if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: '<b>Fecha de picking</b>', d: 'var(--color-fg-muted)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
   const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Sin enviar a proveedor': 1.5, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
@@ -527,7 +527,7 @@
     const filas = lista.slice(0, visibles).map((l) => {
       const abierto = abiertos.has(l.lote);
       const cls = l.estado === 'Listo' ? 'tj-lista' : l.estado === 'Reproceso' ? 'tj-repro' : '';
-      const tipLote = [l.pieza && `Pieza: ${l.pieza}`, l.determinacion && `Determinación: ${l.determinacion}`, l.picking && `Picking: ${dmy(l.picking)}`, l.producto].filter(Boolean).join('\n');
+      const tipLote = [l.material && `Código: ${l.material}`, l.pieza && `Pieza: ${l.pieza}`, l.determinacion && `Determinación: ${l.determinacion}`, l.picking && `Picking: ${dmy(l.picking)}`, l.producto].filter(Boolean).join('\n');
       const aprobado = l.estado === 'Listo';
       return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
         <td class="tj-sticky" title="${esc(tipLote)}"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod">${esc(l.producto)}</span></td>
@@ -567,6 +567,7 @@
     return lista.map((l) => {
       const o = {
         'Lote': Number(l.lote) || l.lote,
+        'Código material': l.material ? Number(l.material) || l.material : '',
         'Producto': l.producto || '',
         'Pieza': l.pieza || '',
         'Tipo': l.tipo || '',
