@@ -38,14 +38,23 @@
   .tj-takeaway { margin: 0; color: rgba(255,255,255,.78); max-width: 80ch; }
   .tj-takeaway b { color: #fff; font-weight: 600; }
 
-  .tj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.2rem, 1fr)); gap: var(--cds-gap-sm); }
-  .tj-kpi { font: inherit; text-align: left; color: inherit; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: grid; gap: 2px; cursor: pointer; position: relative; }
-  .tj-kpi::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 0 3px 3px 0; background: var(--k, var(--tj-ink)); }
-  .tj-kpi span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
-  .tj-kpi b { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
-  .tj-kpi small { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
-  .tj-kpi[aria-pressed="true"] { border-color: var(--tj-crimson); box-shadow: inset 0 0 0 1px var(--tj-crimson); }
-  .tj-kpi.tj-info { cursor: default; }
+  /* Panel de indicadores compacto, por grupos */
+  .tj-kpis { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 10px 14px; display: grid; gap: 8px; }
+  .tj-kpis-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-kpis-head b { font-size: 1.05rem; color: var(--color-fg); font-variant-numeric: tabular-nums; }
+  .tj-kpis-head button { font: inherit; background: none; border: 0; padding: 0; color: var(--tj-crimson); font-weight: 600; cursor: pointer; }
+  .tj-kgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 6px 18px; }
+  .tj-kgrp { display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .tj-kgrp h3 { margin: 0; font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-fg-muted); }
+  .tj-kitems { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tj-kpi { font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg); background: var(--color-bg); border: 1px solid transparent; border-radius: 999px; padding: 3px 10px 3px 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+  .tj-kpi::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k, var(--color-fg-muted)); flex: none; }
+  .tj-kpi b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tj-kpi:hover { border-color: var(--color-border-line); }
+  .tj-kpi[aria-pressed="true"] { border-color: var(--tj-crimson); background: var(--tj-crimson-soft); }
+  .tj-kpi.cero { color: var(--color-fg-muted); } .tj-kpi.cero::before { opacity: .35; }
+  .tj-kpi.tj-info { cursor: default; } .tj-kpi.tj-info::before { display: none; } .tj-kpi.tj-info:hover { border-color: transparent; }
+  .tj-kpi.alerta b { color: var(--color-bad); }
 
   .tj-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); align-items: end; }
   .tj-field { display: grid; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-width: 0; }
@@ -179,6 +188,9 @@
     <label class="tj-field" for="f-picking">Fecha de picking
       <select id="f-picking">
         <option value="">Todos</option>
+        <option value="vencido">Vencidos</option>
+        <option value="hoy">Vencen hoy</option>
+        <option value="proximo">Próximos a vencer (1–2 días)</option>
         <option value="con">Con fecha de picking</option>
         <option value="sin">Sin fecha de picking</option>
       </select>
@@ -354,11 +366,17 @@
     const q = F.buscar.trim().toLowerCase();
     return datos.lotes.filter((l) => {
       // Un lote con picking pendiente siempre se muestra, aunque no tenga movimiento reciente.
-      if (desde && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
+      // Un lote vencido, que vence hoy o próximo a vencer se muestra aunque no tenga movimiento reciente.
+      const pickAviso = ['vencido', 'hoy', 'proximo'].includes(l.alerta);
+      if (desde && !pickAviso && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
       if (F.tipo === 'TallerTodos') { if (!/^Taller|^Importado/.test(l.tipo)) return false; }
       else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
-      if (F.picking === 'con' && !l.picking) return false;
-      if (F.picking === 'sin' && l.picking) return false;
+      // Los contadores (sinEstado) no dependen de los filtros de estado ni de picking.
+      if (!sinEstado) {
+        if (['vencido', 'hoy', 'proximo'].includes(F.picking) && l.alerta !== F.picking) return false;
+        if (F.picking === 'con' && !l.picking) return false;
+        if (F.picking === 'sin' && l.picking) return false;
+      }
       if (F.asig === 'Con' && !l.asignacion) return false;
       if (F.asig === 'Sin' && l.asignacion) return false;
       if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
@@ -373,18 +391,38 @@
     });
   }
 
+  const GRUPOS = [
+    { t: 'En proceso', ids: ['Por iniciar', 'Sin enviar a proveedor', 'En proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
+    { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
+  ];
   function kpis(base) {
     const n = (e) => base.filter((l) => l.estado === e).length;
+    const est = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
+    const chip = (attr, val, activo, k, label, num, tip, extra = '') =>
+      `<button type="button" class="tj-kpi${num ? '' : ' cero'}${extra}" ${attr}="${esc(val)}" aria-pressed="${activo}" style="--k:${k}" title="${esc(tip)}"><b>${num}</b>${esc(label)}</button>`;
+    const grupo = (t, items) => `<div class="tj-kgrp"><h3>${t}</h3><div class="tj-kitems">${items}</div></div>`;
+    const pk = (a) => base.filter((l) => l.alerta === a).length;
     const listos = base.filter((l) => l.estado === 'Listo' && l.d_total != null);
     const prom = listos.length ? Math.round(listos.reduce((s, l) => s + l.d_total, 0) / listos.length) : null;
     const listosAsig = base.filter((l) => l.estado === 'Listo' && l.asignacion && l.d_inicio_fin != null);
     const promA = listosAsig.length ? Math.round(listosAsig.reduce((s, l) => s + l.d_inicio_fin, 0) / listosAsig.length) : null;
+    const sl = base.filter((l) => l.traslado && l.d_listo_salida != null);
+    const prS = sl.length ? Math.round(sl.reduce((s, l) => s + l.d_listo_salida, 0) / sl.length * 10) / 10 : null;
+    const esp = base.filter((l) => l.listo_abierto).length;
+    const info = (label, val, tip) => `<span class="tj-kpi tj-info" title="${esc(tip)}">${esc(label)} <b>${val}</b></span>`;
+    const filtrado = F.estado || ['vencido', 'hoy', 'proximo'].includes(F.picking);
     $('kpis').innerHTML =
-      `<button type="button" class="tj-kpi" data-estado="" aria-pressed="${!F.estado}" style="--k:var(--color-fg)"><span>Lotes en el periodo</span><b>${base.length}</b><small>${base.filter((l) => l.asignacion).length} con asignación</small></button>` +
-      ESTADOS.map((e) => `<button type="button" class="tj-kpi" data-estado="${e.id}" aria-pressed="${F.estado === e.id}" style="--k:${e.k}"><span>${e.id}</span><b>${n(e.id)}</b><small>${e.d}</small></button>`).join('') +
-      `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>` +
-      (() => { const sl = base.filter((l) => l.traslado && l.d_listo_salida != null); const pr = sl.length ? Math.round(sl.reduce((s, l) => s + l.d_listo_salida, 0) / sl.length * 10) / 10 : null; const esp = base.filter((l) => l.listo_abierto).length;
-        return `<div class="tj-kpi tj-info" style="--k:#0F766E"><span>Promedio listo → salida</span><b>${pr == null ? '—' : String(pr).replace('.', ',') + ' d'}</b><small>${sl.length} lotes salieron · ${esp} listos esperando</small></div>`; })();
+      `<div class="tj-kpis-head"><span><b>${base.length}</b> lotes en el periodo · ${base.filter((l) => l.asignacion).length} con asignación</span>${filtrado ? '<button type="button" data-limpiar="1">Ver todos</button>' : ''}</div>
+      <div class="tj-kgrid">` +
+      GRUPOS.map((g) => grupo(g.t, g.ids.map((id) => chip('data-estado', id, F.estado === id, est[id].k, id, n(id), est[id].d)).join(''))).join('') +
+      grupo(`Picking (desde ${dm(S.CORTE_ALERTAS) || 'siempre'})`,
+        chip('data-picking', 'vencido', F.picking === 'vencido', 'var(--color-bad)', 'Vencidos', pk('vencido'), 'Pasó la fecha de picking y el lote no está listo ni ha salido', pk('vencido') ? ' alerta' : '') +
+        chip('data-picking', 'hoy', F.picking === 'hoy', 'var(--color-bad)', 'Vencen hoy', pk('hoy'), 'La fecha de picking es hoy y el lote no está listo') +
+        chip('data-picking', 'proximo', F.picking === 'proximo', 'var(--color-warn)', 'Próximos (1–2 d)', pk('proximo'), 'Faltan 1 o 2 días para el picking y el lote no está listo')) +
+      grupo('Tiempos promedio',
+        info('Ingreso → listo', prom == null ? '—' : prom + ' d', promA == null ? 'Lotes con inspección aprobada' : `Asignación → listo: ${promA} d`) +
+        info('Listo → salida', prS == null ? '—' : String(prS).replace('.', ',') + ' d', `${sl.length} lotes salieron · ${esp} listos esperando en la plataforma`)) +
+      `</div>`;
   }
 
   function celda(c, aprobado) {
@@ -410,12 +448,18 @@
     return `<div class="tj-c reproceso" title="${esc(tip)}"><b>Reproceso${orig}</b><small>${esc(titulo(i.reproceso || ''))} · ${dm(i.fecha)}</small></div>`;
   }
 
-  // Columna Picking (sin alertas por ahora: falta información para medir incumplimientos).
+  // Columna Picking: vencido, vence hoy o próximo a vencer (si el lote no está listo); si no, la fecha y cómo quedó listo.
   function celdaPicking(l) {
     if (!l.picking) return l.determinacion === 'PRODUCTO IMPORTADO' ? '<div class="tj-c gris">Importado</div>' : '<div class="tj-c gris">—</div>';
-    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.traslado ? '\nSalida: ' + dmy(l.traslado) : ''}`;
-    const sm = l.cierre ? `${l.cierre.motivo} ${dm(l.cierre.fecha)}` : '';
-    return `<div class="tj-c pend" title="${esc(tip)}"><b>${dmy(l.picking)}</b>${sm ? `<small>${esc(sm)}</small>` : ''}</div>`;
+    const f = dmy(l.picking), n = l.d_picking;
+    const tip = `Picking: ${f}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.traslado ? '\nSalida: ' + dmy(l.traslado) : ''}${l.alerta === 'previo' ? '\nPicking anterior al ' + dmy(S.CORTE_ALERTAS) + ': sin aviso' : ''}`;
+    const c = (cls, b, sm) => `<div class="tj-c ${cls}" title="${esc(tip)}"><b>${b}</b>${sm ? `<small>${esc(sm)}</small>` : ''}</div>`;
+    switch (l.alerta) {
+      case 'vencido': return c('rojo', 'Vencido', `${dm(l.picking)} · hace ${-n} d`);
+      case 'hoy': return c('rojo', 'Vence hoy', dm(l.picking));
+      case 'proximo': return c('sinreg', `Vence en ${n} d`, dm(l.picking));
+      default: return c('pend', f, l.cierre ? `${l.cierre.motivo} ${dm(l.cierre.fecha)}` : '');
+    }
   }
   const TIPO_CLASE = { 'Taller plataforma': 'tp', 'Taller proveedor': 'tv', Taller: 'ta', Importado: 'im', Venta: 've' };
   const TIPO_TXT = { Taller: 'Taller s/ det.', Venta: 'Venta', Importado: 'Importado' };
@@ -529,6 +573,8 @@
         'Determinación (hoja)': l.determinacion || '',
         'Centro': l.centro || '',
         'Fecha de picking': fx(l.picking),
+        'Aviso de picking': { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Próximo a vencer' }[l.alerta] || '',
+        'Días para picking': ['vencido', 'hoy', 'proximo', 'en_plazo'].includes(l.alerta) ? l.d_picking : null,
         'Fecha de ingreso': fx(l.entrada),
         'Fecha de asignación': fx(l.asignacion),
       };
@@ -634,6 +680,8 @@
   let t; $('f-buscar').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => cambiar({ buscar: e.target.value }), 150); });
   $('f-reset').addEventListener('click', () => { $('f-buscar').value = ''; cambiar({ ...DEF }); });
   $('kpis').addEventListener('click', (e) => {
+    if (e.target.closest('[data-limpiar]')) { cambiar({ estado: '', picking: '' }); return; }
+    const p = e.target.closest('[data-picking]'); if (p) { cambiar({ picking: F.picking === p.dataset.picking ? '' : p.dataset.picking }); return; }
     const b = e.target.closest('[data-estado]'); if (b) cambiar({ estado: F.estado === b.dataset.estado ? '' : b.dataset.estado });
   });
   document.querySelector('#tabla thead').addEventListener('click', (e) => {
