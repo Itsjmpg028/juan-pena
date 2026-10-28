@@ -111,6 +111,7 @@
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
   .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Trasladado { color: #0F766E; }
+  .tj-estado-fecha { display: block; font-size: .7rem; color: var(--color-fg-muted); white-space: nowrap; }
   @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } }
 
   .tj-det td { background: var(--color-bg) !important; padding: 10px 14px 14px; }
@@ -491,7 +492,7 @@
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
-        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span></td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${l.estado === 'Trasladado' && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : ''}</td>
         <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
         <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>
         <td class="tj-num">${diasTxt(l.d_total, l.abierto)}</td>
