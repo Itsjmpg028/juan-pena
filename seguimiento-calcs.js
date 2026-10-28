@@ -211,7 +211,7 @@
   // si no, se toman las dos primeras palabras. Para corregir uno, agrégalo aquí.
   const NOMBRES = {
     'ACUNA DAVILA RIDER JOSE': 'Rider Acuña',
-    'MANOTAS BARRAZA ROBERTO WILLY': 'Roberto Manotas',
+    'MANOTAS BARRAZA ROBERTO WILLY': 'Willy Manotas',
     'OJEDA FERRER NAYIB': 'Nayib Ojeda',
     'PUELLO ROBERTH': 'Roberth Puello',
     'CENTENO NAVARRO ROBINSON': 'Robinson Centeno',
