@@ -128,14 +128,6 @@
   .tj-msg { padding: 24px; text-align: center; color: var(--color-fg-muted); }
   .tj-err { border: 1px solid var(--color-bad); color: var(--color-bad); background: var(--st-rojo-bg); border-radius: var(--cds-radius); padding: 10px 14px; font-size: var(--cds-font-size-caption); }
   .tj-err:empty { display: none; }
-  .tj-incumple { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; border: 2px solid var(--tj-crimson); background: var(--st-rojo-bg); border-radius: var(--cds-radius); padding: 12px 16px; }
-  .tj-incumple[hidden] { display: none; }
-  .tj-incumple b.n { font-size: 1.6rem; line-height: 1; color: var(--color-bad); font-variant-numeric: tabular-nums; }
-  .tj-incumple .t { display: grid; gap: 2px; flex: 1; min-width: 14rem; }
-  .tj-incumple .t strong { font-size: var(--cds-font-size-body); }
-  .tj-incumple .t span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
-  .tj-incumple button { font: inherit; font-weight: 600; padding: 6px 14px; border-radius: var(--cds-radius); border: 1px solid var(--tj-crimson); background: var(--tj-crimson); color: #fff; cursor: pointer; }
-  .tj-incumple button[aria-pressed="true"] { background: transparent; color: var(--color-bad); }
   .tj-foot { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
 </style>
 </head>
@@ -150,8 +142,6 @@
   </header>
 
   <div class="tj-err" id="errores" role="alert"></div>
-
-  <section class="tj-incumple" id="incumple" hidden aria-live="polite"></section>
 
   <section class="tj-kpis" id="kpis" aria-label="Lotes por estado"></section>
 
@@ -487,23 +477,6 @@
     });
   }
 
-  // Aviso de incumplimientos: picking vencido sin estar listo, sin importar los filtros de periodo, tipo o estado.
-  function banner() {
-    const inc = datos.lotes.filter((l) => l.alerta === 'vencido');
-    const el = $('incumple');
-    if (!inc.length) { el.hidden = true; return; }
-    const n = (f) => inc.filter(f).length;
-    const prov = n((l) => l.estado === 'En proveedor'), sinEnv = n((l) => l.estado === 'Sin enviar a proveedor');
-    const taller = inc.length - prov - sinEnv;
-    const peor = inc.slice().sort((a, b) => b.retraso - a.retraso)[0];
-    const activo = F.picking === 'vencido';
-    el.hidden = false;
-    el.innerHTML = `<b class="n">${inc.length}</b>
-      <div class="t"><strong>Incumplimientos de fecha de picking${S.CORTE_ALERTAS ? ` (picking desde el ${dmy(S.CORTE_ALERTAS)})` : ''}</strong>
-      <span>${prov} en proveedor sin devolver · ${sinEnv} sin enviar a proveedor · ${taller} sin terminar en el taller · mayor retraso: lote ${esc(peor.lote)} con ${peor.retraso} días</span></div>
-      <button type="button" id="ver-incumple" aria-pressed="${activo}">${activo ? 'Quitar filtro' : 'Ver incumplimientos'}</button>`;
-  }
-
   function pintar() {
     // Controles
     $('f-asig').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F.asig)));
@@ -523,9 +496,8 @@
     const listos = base.filter((l) => l.estado === 'Listo').length;
     const rep = base.filter((l) => l.estado === 'Reproceso').length;
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
-    const alertas = base.filter((l) => l.alerta === 'vencido').length;
-    banner();
-    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} incumplimientos de picking.</b>` : ''}`;
+
+    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.`;
     const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos', __salio: 'salieron de la plataforma' };
     $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + (ESTADO_TXT[F.estado] || F.estado) : ''})`;
 
@@ -676,13 +648,6 @@
     }
   }
   $('descargar').addEventListener('click', descargar);
-  $('incumple').addEventListener('click', (e) => {
-    if (!e.target.closest('#ver-incumple')) return;
-    if (F.picking === 'vencido') { cambiar({ picking: '' }); return; }
-    // Muestra todos los incumplidos: quita los demás filtros que podrían esconderlos y ordena por mayor retraso.
-    $('f-buscar').value = '';
-    cambiar({ picking: 'vencido', periodo: '0', tipo: 'Todos', estado: '', asig: 'Todos', tecnico: '', buscar: '', sort: 'retraso', dir: -1 });
-  });
 
   // Eventos
   const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
