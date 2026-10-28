@@ -77,7 +77,7 @@
       centro: ['CENTRO'], resultado: ['RESULTADO'], reproceso: ['ÁREA A REPROCESAR'], obs: ['OBSERVACIONES'],
     },
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'] },
-    traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'] },
+    traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'], mov: ['Clase de movimiento'] },
     determinacion: { lote: ['Lote'], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
@@ -132,7 +132,8 @@
       get(l);
       det.set(l, { asignacion: norm(r.asignacion), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
     }
-    // Traslados (Salidas 939): fechas de salida de los lotes que se siguen.
+    // Movimientos de salida (hoja Traslados, copia de Salidas 939). Clase de movimiento:
+    // 161 = envío a proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta). Sin clase se asume 939.
     const sal = new Map();
     for (const r of t.traslados.rows) {
       const l = loteNorm(r.lote);
@@ -140,7 +141,7 @@
       const fecha = isoDate(r.fecha);
       if (!fecha) continue;
       if (!sal.has(l)) sal.set(l, []);
-      sal.get(l).push(fecha);
+      sal.get(l).push({ fecha, mov: String(r.mov || '939').trim() });
     }
     // Inventario: solo para los lotes que se siguen (fechas de entrada, centro y producto).
     const inv = new Map();
@@ -193,17 +194,23 @@
       }
 
       const D = det.get(L.lote) || null;
-      // Traslado: la salida 939 solo existe para productos de venta (no de taller). La primera salida desde el
-      // ingreso cierra un lote de venta; a los lotes de taller (o de la hoja Determinación) no se les aplica.
-      const esVenta = !D && tipoCentro(centro || (entrada && entrada.centro) || '') === 'Venta';
-      const salidas = esVenta ? (sal.get(L.lote) || []).sort() : [];
+      // Movimientos desde el ingreso del lote (los anteriores son de otro paso por la plataforma).
       const desdeIngreso = (entrada && entrada.fecha) || inicio || '';
-      const traslado = salidas.find((f) => f >= desdeIngreso) || null;
+      const movs = (sal.get(L.lote) || []).filter((m) => m.fecha >= desdeIngreso).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+      // Salida de la plataforma: primera entrega al cliente (601) o traslado (939).
+      const salida = movs.find((m) => m.mov === '601' || m.mov === '939') || null;
+      const traslado = salida ? salida.fecha : null;
+      // Envío a proveedor (161): el más reciente.
+      const envios = movs.filter((m) => m.mov === '161');
+      const envioProv = envios.length ? envios[envios.length - 1].fecha : null;
       const empaque = celdas.emp.regs.length ? celdas.emp.regs[0].fecha : null;
+      // Hay trabajo registrado después del envío a proveedor: el producto ya volvió.
+      const volvio = envioProv && L.regs.some((r) => r.fecha > envioProv);
       let estado;
-      if (insp && insp.resultado === 'APROBADO') estado = 'Listo';
-      else if (traslado) estado = 'Trasladado';
+      if (salida) estado = salida.mov === '601' ? 'Entregado' : 'Trasladado';
+      else if (insp && insp.resultado === 'APROBADO') estado = 'Listo';
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
+      else if (envioProv && !volvio) estado = 'En proveedor';
       else if (L.regs.length) {
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
@@ -212,10 +219,13 @@
       else estado = 'Por iniciar';
 
       const fin = aprobado ? insp.fecha : null;
+      // Fecha en que el lote quedó listo: inspección APROBADO; si no hay inspección, el primer empaque.
+      const listo = fin ? { fecha: fin, motivo: 'inspección' } : empaque ? { fecha: empaque, motivo: 'empacado' } : null;
+      const dListoSalida = listo && (!traslado || traslado >= listo.fecha) ? dias(listo.fecha, traslado || hoy) : null;
       // Alerta de picking. El lote cuenta como listo para el picking con lo primero que ocurra:
       // inspección APROBADO, empaque registrado o traslado (939). Picking anteriores al corte no generan alerta.
       const picking = D ? D.picking : null;
-      const cierres = [fin && { fecha: fin, motivo: 'inspección' }, empaque && { fecha: empaque, motivo: 'empacado' }, traslado && { fecha: traslado, motivo: 'trasladado' }]
+      const cierres = [fin && { fecha: fin, motivo: 'inspección' }, empaque && { fecha: empaque, motivo: 'empacado' }, salida && { fecha: salida.fecha, motivo: salida.mov === '601' ? 'entregado' : 'trasladado' }]
         .filter(Boolean).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
       const cierre = cierres[0] || null;
       let alerta = null;
@@ -230,7 +240,7 @@
       }
       const tipoBase = tipoCentro(centro || (entrada && entrada.centro) || '');
       const tipo = D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
-      const fechas = [asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha)].filter(Boolean).sort();
+      const fechas = [asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha), ...movs.map((m) => m.fecha)].filter(Boolean).sort();
       out.push({
         lote: L.lote,
         producto,
@@ -244,6 +254,12 @@
         d_picking: dPick,
         cierre,
         traslado,
+        salida_mov: salida ? salida.mov : null,
+        envio_prov: envioProv,
+        movs,
+        listo,
+        d_listo_salida: dListoSalida,
+        listo_abierto: !!listo && !traslado,
         empaque,
         entrada: entrada ? entrada.fecha : null,
         entradas: entradas.map((e) => e.fecha),

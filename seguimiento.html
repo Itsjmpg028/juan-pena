@@ -110,7 +110,7 @@
   .tj-estado { font-weight: 600; white-space: nowrap; }
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
-  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Trasladado { color: #0F766E; }
+  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Trasladado { color: #0F766E; } .tj-estado.Entregado { color: var(--color-ok); }
   .tj-estado-fecha { display: block; font-size: .7rem; color: var(--color-fg-muted); white-space: nowrap; }
   @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } }
 
@@ -167,7 +167,9 @@
         <option value="En proceso">En proceso</option>
         <option value="Por inspeccionar">Por inspeccionar</option>
         <option value="Reproceso">Reproceso</option>
-        <option value="Trasladado">Trasladados (venta, salida 939)</option>
+        <option value="__salio">Salieron de la plataforma (601 o 939)</option>
+        <option value="Entregado">Entregados al cliente (601)</option>
+        <option value="Trasladado">Trasladados (939)</option>
       </select>
     </label>
     <label class="tj-field" for="f-picking">Fecha de picking
@@ -231,9 +233,10 @@
             <th class="tj-num" title="Días entre la fecha de ingreso y la asignación (o el primer registro si no se asignó)"><button type="button" data-sort="d_entrada_inicio">Ingreso → asig.</button></th>
             <th class="tj-num" title="Días entre la asignación (o primer registro) y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_inicio_fin">Asig. → listo</button></th>
             <th class="tj-num" title="Días entre la fecha de ingreso y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_total">Total</button></th>
+            <th class="tj-num" title="Días desde que el lote quedó listo (inspección aprobada o, si no hay, empaque) hasta que salió de la plataforma (601 entrega al cliente o 939 traslado). En cursiva: sigue en la plataforma, contado hasta hoy."><button type="button" data-sort="d_listo_salida">Listo → salida</button></th>
           </tr>
         </thead>
-        <tbody id="cuerpo"><tr><td colspan="15" class="tj-msg">Cargando…</td></tr></tbody>
+        <tbody id="cuerpo"><tr><td colspan="16" class="tj-msg">Cargando…</td></tr></tbody>
       </table>
     </div>
     <p class="tj-foot">Días calendario. En cursiva: lote todavía abierto (se cuenta hasta hoy). Toca un lote para ver su recorrido completo.</p>
@@ -252,7 +255,7 @@
     asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
     inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
     inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false, sin: 'las fechas de ingreso quedan vacías' },
-    traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'los lotes de venta trasladados no se marcan como cerrados' },
+    traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'no se ven envíos a proveedor, entregas ni traslados' },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
   };
   const REFRESCO_MIN = 5;
@@ -329,12 +332,13 @@
 
   const ESTADOS = [
     { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Sin registros todavía' },
-    { id: 'En proveedor', k: '#7C3AED', d: 'Taller proveedor sin regresar' },
+    { id: 'En proveedor', k: '#7C3AED', d: 'Enviado a proveedor (161) sin regresar' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
     { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
     { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada' },
-    { id: 'Trasladado', k: '#0F766E', d: 'Venta con salida 939' },
+    { id: 'Entregado', k: 'var(--color-ok)', d: 'Entregado al cliente (601)' },
+    { id: 'Trasladado', k: '#0F766E', d: 'Trasladado (939)' },
   ];
 
   function filtrar(sinEstado) {
@@ -355,7 +359,8 @@
       if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
       if (!sinEstado && F.estado) {
         if (F.estado === '__picklisto') { if (!(l.estado === 'Listo' || l.empaque)) return false; }
-        else if (F.estado === '__pend') { if (l.estado === 'Listo' || l.estado === 'Trasladado') return false; }
+        else if (F.estado === '__pend') { if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) return false; }
+        else if (F.estado === '__salio') { if (!l.traslado) return false; }
         else if (l.estado !== F.estado) return false;
       }
       if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q)) return false;
@@ -374,7 +379,9 @@
       ESTADOS.map((e) => `<button type="button" class="tj-kpi" data-estado="${e.id}" aria-pressed="${F.estado === e.id}" style="--k:${e.k}"><span>${e.id}</span><b>${n(e.id)}</b><small>${e.d}</small></button>`).join('') +
       (() => { const v = base.filter((l) => l.alerta === 'vencido').length, h = base.filter((l) => l.alerta === 'hoy').length, pr = base.filter((l) => l.alerta === 'proximo').length;
         return `<button type="button" class="tj-kpi" data-picking="alerta" aria-pressed="${F.picking === 'alerta'}" style="--k:var(--tj-crimson)"><span>Alertas de picking</span><b style="color:${v + h ? 'var(--color-bad)' : 'inherit'}">${v + h}</b><small>${v} vencidos · ${h} vencen hoy · ${pr} en 1–2 días</small></button>`; })() +
-      `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>`;
+      `<div class="tj-kpi tj-info" style="--k:var(--color-ok)"><span>Promedio ingreso → listo</span><b>${prom == null ? '—' : prom + ' d'}</b><small>${promA == null ? 'Sin lotes asignados listos' : `asignación → listo: ${promA} d`}</small></div>` +
+      (() => { const sl = base.filter((l) => l.traslado && l.d_listo_salida != null); const pr = sl.length ? Math.round(sl.reduce((s, l) => s + l.d_listo_salida, 0) / sl.length * 10) / 10 : null; const esp = base.filter((l) => l.listo_abierto).length;
+        return `<div class="tj-kpi tj-info" style="--k:#0F766E"><span>Promedio listo → salida</span><b>${pr == null ? '—' : String(pr).replace('.', ',') + ' d'}</b><small>${sl.length} lotes salieron · ${esp} listos esperando</small></div>`; })();
   }
 
   function celda(c, aprobado) {
@@ -431,14 +438,16 @@
       const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
       ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: l.estado === 'Listo' ? 'var(--color-ok)' : 'var(--st-azul)' });
     }
-    if (l.traslado) ev.push({ f: l.traslado, h: l.traslado + ' 23:58', t: '<b>Traslado</b> (salida 939)', d: '#0F766E' });
+    const MOV_TXT = { 161: '<b>Envío a proveedor</b> (161)', 601: '<b>Entrega al cliente</b> (601)', 939: '<b>Traslado</b> (939)' };
+    for (const m of l.movs || []) ev.push({ f: m.fecha, h: m.fecha + ' 23:58', t: MOV_TXT[m.mov] || `<b>Movimiento ${esc(m.mov)}</b>`, d: m.mov === '161' ? '#7C3AED' : '#0F766E' });
+    if (l.listo && l.d_listo_salida != null) ev.push({ f: l.traslado || hoyISO(), h: (l.traslado || hoyISO()) + ' 23:59', t: l.traslado ? `<b>Listo → salida:</b> ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} (listo por ${l.listo.motivo} el ${dmy(l.listo.fecha)})` : `<b>Sigue en la plataforma</b> · ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} desde que quedó listo (${l.listo.motivo})`, d: 'var(--color-fg-muted)' });
     if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: `<b>Fecha de picking</b>${l.cierre ? (l.alerta === 'a_tiempo' ? ` · cumplida (${l.cierre.motivo})` : ` · listo después de esta fecha (${l.cierre.motivo})`) : (l.alerta === 'vencido' ? ' · <span style="color:var(--color-bad);font-weight:600">VENCIDA: sin empaque ni aprobación</span>' : l.alerta === 'previo' ? ' · anterior al corte de alertas' : '')}`, d: l.alerta === 'vencido' || l.alerta === 'tarde' ? 'var(--tj-crimson)' : 'var(--color-fg-muted)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="15"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Trasladado': 6 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
@@ -474,11 +483,11 @@
     const rep = base.filter((l) => l.estado === 'Reproceso').length;
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
     const alertas = base.filter((l) => l.alerta === 'vencido' || l.alerta === 'hoy').length;
-    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} con picking vencido o que vence hoy sin estar listos.</b>` : ''}`;
-    const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos' };
+    $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} con picking vencido o que vence hoy sin estar listos.</b>` : ''}`;
+    const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos', __salio: 'salieron de la plataforma' };
     $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + (ESTADO_TXT[F.estado] || F.estado) : ''})`;
 
-    if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="15" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
+    if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="16" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
     const filas = lista.slice(0, visibles).map((l) => {
       const abierto = abiertos.has(l.lote);
       const cls = l.estado === 'Listo' ? 'tj-lista' : (l.alerta === 'vencido' || l.alerta === 'hoy') ? 'tj-vencido' : l.estado === 'Reproceso' ? 'tj-repro' : '';
@@ -492,13 +501,14 @@
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
-        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${l.estado === 'Trasladado' && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : ''}</td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)}</small>` : ''}</td>
         <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
         <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>
         <td class="tj-num">${diasTxt(l.d_total, l.abierto)}</td>
+        <td class="tj-num" title="${l.listo ? esc(`Listo: ${dmy(l.listo.fecha)} (${l.listo.motivo})${l.traslado ? `\nSalida: ${dmy(l.traslado)} (${l.salida_mov})` : '\nSigue en la plataforma'}`) : 'Aún no está listo'}">${diasTxt(l.d_listo_salida, l.listo_abierto)}</td>
       </tr>${abierto ? detalle(l) : ''}`;
     });
-    if (lista.length > visibles) filas.push(`<tr><td colspan="15"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
+    if (lista.length > visibles) filas.push(`<tr><td colspan="16"><button type="button" class="tj-more" id="mas">Mostrar ${Math.min(PAGINA, lista.length - visibles)} más (${lista.length - visibles} restantes)</button></td></tr>`);
     $('cuerpo').innerHTML = filas.join('');
   }
 

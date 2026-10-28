@@ -32,6 +32,10 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Fecha de ingreso: la entrada de Inventario más reciente que sea anterior al inicio del trabajo.
 - Determinación (hoja *Determinación*, solo lotes del taller 2000): TALLER → "Taller plataforma", PROVEEDOR → "Taller proveedor", PRODUCTO IMPORTADO → "Importado". Lotes del taller que no están en la hoja: "Taller sin determinación". Todo lote de Determinación se sigue aunque no tenga registros; si es de proveedor y no tiene registros ni inspección, su estado es "En proveedor".
 - Picking (FECHA DE PICKING): el lote cuenta como listo para el picking con lo primero que ocurra entre inspección APROBADO y empaque registrado. Alertas: Vencido, Vence hoy, En 1–2 días; si ya está listo: A tiempo o Listo tarde (con el motivo). Los picking anteriores al 26/10/2026 (inicio de la inspección) no generan alerta.
-- Traslado: la hoja *Traslados* (copia por fórmula de Lote, fecha y centro de *Salidas 939*) cierra los lotes de VENTA con estado "Trasladado". La salida 939 no aplica a lotes de taller.
+- Movimientos (hoja *Traslados*, copia por fórmula de Lote, fecha, centro y clase de movimiento de *Salidas 939*), desde el ingreso del lote:
+  - 161 = envío a proveedor: estado "En proveedor · desde dd/mm" hasta que haya un registro de trabajo posterior.
+  - 601 = entrega al cliente (taller): estado "Entregado" con la fecha.
+  - 939 = traslado (venta): estado "Trasladado" con la fecha.
+- Última columna "Listo → salida": días desde que el lote quedó listo (inspección APROBADO; si no hay, primer empaque) hasta la primera salida 601 o 939. Si sigue en la plataforma, se cuenta hasta hoy (en cursiva). Tarjeta "Promedio listo → salida".
 - Filtro Estado: Listos (aprobados por calidad), Listos para picking (aprobados o empacados), No listos y cada estado. Los lotes con picking pendiente se muestran aunque no tengan movimiento reciente, y los vencidos o que vencen hoy van primero.
 - Al pasar el cursor sobre el lote se ve la PIEZA, la determinación y la fecha de picking.
