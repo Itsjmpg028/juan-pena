@@ -76,7 +76,7 @@
       fecha: ['FECHA'], fecha_hora: ['FECHA HORA'], inspector: ['INSPECTOR'], origen: ['ORIGEN'], lote: ['Lote'], producto: ['PRODUCTO'],
       centro: ['CENTRO'], resultado: ['RESULTADO'], reproceso: ['ÁREA A REPROCESAR'], obs: ['OBSERVACIONES'],
     },
-    inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material'], lote: ['Lote'], mov: ['Clase de movimiento'] },
+    inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'] },
   };
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
