@@ -77,11 +77,14 @@
       centro: ['CENTRO'], resultado: ['RESULTADO'], reproceso: ['ÁREA A REPROCESAR'], obs: ['OBSERVACIONES'],
     },
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'] },
+    traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'] },
     determinacion: { lote: ['Lote'], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
   const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
   const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
+  // Solo generan alerta los picking desde esta fecha (la inspección de calidad empezó el 26/10/2026).
+  const CORTE_ALERTAS = '2026-10-26';
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
@@ -128,6 +131,16 @@
       if (!esLote(l)) continue;
       get(l);
       det.set(l, { asignacion: norm(r.asignacion), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
+    }
+    // Traslados (Salidas 939): fechas de salida de los lotes que se siguen.
+    const sal = new Map();
+    for (const r of t.traslados.rows) {
+      const l = loteNorm(r.lote);
+      if (!lotes.has(l)) continue;
+      const fecha = isoDate(r.fecha);
+      if (!fecha) continue;
+      if (!sal.has(l)) sal.set(l, []);
+      sal.get(l).push(fecha);
     }
     // Inventario: solo para los lotes que se siguen (fechas de entrada, centro y producto).
     const inv = new Map();
@@ -180,8 +193,16 @@
       }
 
       const D = det.get(L.lote) || null;
+      // Traslado: la salida 939 solo existe para productos de venta (no de taller). La primera salida desde el
+      // ingreso cierra un lote de venta; a los lotes de taller (o de la hoja Determinación) no se les aplica.
+      const esVenta = !D && tipoCentro(centro || (entrada && entrada.centro) || '') === 'Venta';
+      const salidas = esVenta ? (sal.get(L.lote) || []).sort() : [];
+      const desdeIngreso = (entrada && entrada.fecha) || inicio || '';
+      const traslado = salidas.find((f) => f >= desdeIngreso) || null;
+      const empaque = celdas.emp.regs.length ? celdas.emp.regs[0].fecha : null;
       let estado;
       if (insp && insp.resultado === 'APROBADO') estado = 'Listo';
+      else if (traslado) estado = 'Trasladado';
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
       else if (L.regs.length) {
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
@@ -191,12 +212,17 @@
       else estado = 'Por iniciar';
 
       const fin = aprobado ? insp.fecha : null;
-      // Alerta de picking: el lote debe estar listo (inspección APROBADO) a más tardar en la fecha de picking.
+      // Alerta de picking. El lote cuenta como listo para el picking con lo primero que ocurra:
+      // inspección APROBADO, empaque registrado o traslado (939). Picking anteriores al corte no generan alerta.
       const picking = D ? D.picking : null;
+      const cierres = [fin && { fecha: fin, motivo: 'inspección' }, empaque && { fecha: empaque, motivo: 'empacado' }, traslado && { fecha: traslado, motivo: 'trasladado' }]
+        .filter(Boolean).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+      const cierre = cierres[0] || null;
       let alerta = null;
       const dPick = picking ? dias(hoy, picking) : null;
       if (picking) {
-        if (fin) alerta = fin <= picking ? 'a_tiempo' : 'tarde';
+        if (cierre) alerta = cierre.fecha <= picking ? 'a_tiempo' : 'tarde';
+        else if (picking < CORTE_ALERTAS) alerta = 'previo';
         else if (dPick < 0) alerta = 'vencido';
         else if (dPick === 0) alerta = 'hoy';
         else if (dPick <= DIAS_AVISO) alerta = 'proximo';
@@ -216,6 +242,9 @@
         picking_txt: D ? D.picking_txt : '',
         alerta,
         d_picking: dPick,
+        cierre,
+        traslado,
+        empaque,
         entrada: entrada ? entrada.fecha : null,
         entradas: entradas.map((e) => e.fecha),
         asignacion: asig ? asig.fecha : null,
@@ -270,6 +299,6 @@
     return tc(w.length === 4 ? `${w[2]} ${w[0]}` : w.slice(0, 2).join(' '));
   };
 
-  const api = { construir, nombreCorto, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
+  const api = { construir, nombreCorto, CORTE_ALERTAS, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Seguimiento = api;
 })(typeof window !== 'undefined' ? window : globalThis);

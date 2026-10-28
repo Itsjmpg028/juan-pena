@@ -110,7 +110,7 @@
   .tj-estado { font-weight: 600; white-space: nowrap; }
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
-  .tj-estado.En-proveedor { color: #7C3AED; }
+  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Trasladado { color: #0F766E; }
   @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } }
 
   .tj-det td { background: var(--color-bg) !important; padding: 10px 14px 14px; }
@@ -153,6 +153,20 @@
         <option value="Taller">Taller sin determinación</option>
         <option value="Importado">Producto importado</option>
         <option value="Venta">Recuperación / venta</option>
+      </select>
+    </label>
+    <label class="tj-field" for="f-estado">Estado
+      <select id="f-estado">
+        <option value="">Todos</option>
+        <option value="Listo">Listos (aprobados por calidad)</option>
+        <option value="__picklisto">Listos para picking (aprobados o empacados)</option>
+        <option value="__pend">No listos</option>
+        <option value="Por iniciar">Por iniciar</option>
+        <option value="En proveedor">En proveedor</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Por inspeccionar">Por inspeccionar</option>
+        <option value="Reproceso">Reproceso</option>
+        <option value="Trasladado">Trasladados (venta, salida 939)</option>
       </select>
     </label>
     <label class="tj-field" for="f-picking">Fecha de picking
@@ -237,6 +251,7 @@
     asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
     inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
     inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false, sin: 'las fechas de ingreso quedan vacías' },
+    traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'los lotes de venta trasladados no se marcan como cerrados' },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
   };
   const REFRESCO_MIN = 5;
@@ -318,6 +333,7 @@
     { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
     { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada' },
+    { id: 'Trasladado', k: '#0F766E', d: 'Venta con salida 939' },
   ];
 
   function filtrar(sinEstado) {
@@ -325,7 +341,7 @@
     const q = F.buscar.trim().toLowerCase();
     return datos.lotes.filter((l) => {
       // Un lote con picking pendiente siempre se muestra, aunque no tenga movimiento reciente.
-      const pickPendiente = l.picking && !l.fin;
+      const pickPendiente = ['vencido', 'hoy', 'proximo', 'en_plazo'].includes(l.alerta);
       if (desde && !pickPendiente && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
       if (F.tipo === 'TallerTodos') { if (!/^Taller|^Importado/.test(l.tipo)) return false; }
       else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
@@ -336,7 +352,11 @@
       if (F.asig === 'Con' && !l.asignacion) return false;
       if (F.asig === 'Sin' && l.asignacion) return false;
       if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
-      if (!sinEstado && F.estado && l.estado !== F.estado) return false;
+      if (!sinEstado && F.estado) {
+        if (F.estado === '__picklisto') { if (!(l.estado === 'Listo' || l.empaque)) return false; }
+        else if (F.estado === '__pend') { if (l.estado === 'Listo' || l.estado === 'Trasladado') return false; }
+        else if (l.estado !== F.estado) return false;
+      }
       if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q)) return false;
       return true;
     });
@@ -382,14 +402,15 @@
   function celdaPicking(l) {
     if (!l.picking) return l.determinacion === 'PRODUCTO IMPORTADO' ? '<div class="tj-c gris">Importado</div>' : '<div class="tj-c gris">—</div>';
     const f = dm(l.picking), n = l.d_picking;
-    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}`;
+    const tip = `Picking: ${dmy(l.picking)}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.alerta === 'previo' ? '\nPicking anterior al ' + dmy(S.CORTE_ALERTAS) + ': no genera alerta' : ''}`;
     const c = (cls, b, sm) => `<div class="tj-c ${cls}" title="${esc(tip)}"><b>${b}</b><small>${sm}</small></div>`;
     switch (l.alerta) {
       case 'vencido': return c('rojo', 'Vencido', `${f} · hace ${-n} d`);
       case 'hoy': return c('rojo', 'Vence hoy', f);
       case 'proximo': return c('sinreg', `En ${n} d`, f);
-      case 'a_tiempo': return c('verde', 'A tiempo', f);
-      case 'tarde': return c('sinreg', 'Listo tarde', `${f} → ${dm(l.fin)}`);
+      case 'a_tiempo': return c(l.cierre.motivo === 'inspección' ? 'verde' : 'azul', 'A tiempo', `${f} · ${l.cierre.motivo}`);
+      case 'tarde': return c('sinreg', 'Listo tarde', `${f} → ${dm(l.cierre.fecha)} ${l.cierre.motivo}`);
+      case 'previo': return c('pend', f, 'sin alerta');
       default: return c('pend', f, `en ${n} d`);
     }
   }
@@ -409,13 +430,14 @@
       const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
       ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: l.estado === 'Listo' ? 'var(--color-ok)' : 'var(--st-azul)' });
     }
-    if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: `<b>Fecha de picking</b>${l.fin ? (l.alerta === 'a_tiempo' ? ' · cumplida' : ' · aprobado después de esta fecha') : (l.alerta === 'vencido' ? ' · <span style="color:var(--color-bad);font-weight:600">VENCIDA sin aprobación</span>' : '')}`, d: l.alerta === 'vencido' || l.alerta === 'tarde' ? 'var(--tj-crimson)' : 'var(--color-fg-muted)' });
+    if (l.traslado) ev.push({ f: l.traslado, h: l.traslado + ' 23:58', t: '<b>Traslado</b> (salida 939)', d: '#0F766E' });
+    if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: `<b>Fecha de picking</b>${l.cierre ? (l.alerta === 'a_tiempo' ? ` · cumplida (${l.cierre.motivo})` : ` · listo después de esta fecha (${l.cierre.motivo})`) : (l.alerta === 'vencido' ? ' · <span style="color:var(--color-bad);font-weight:600">VENCIDA: sin empaque ni aprobación</span>' : l.alerta === 'previo' ? ' · anterior al corte de alertas' : '')}`, d: l.alerta === 'vencido' || l.alerta === 'tarde' ? 'var(--tj-crimson)' : 'var(--color-fg-muted)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="15"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !e.h.endsWith('23:59') ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="15"><h3>${[esc(l.lote), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Trasladado': 6 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
@@ -436,6 +458,7 @@
     $('f-asig').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === F.asig)));
     $('f-tipo').value = F.tipo; if ($('f-tipo').value !== F.tipo) { F.tipo = 'Todos'; $('f-tipo').value = 'Todos'; }
     $('f-picking').value = F.picking;
+    $('f-estado').value = F.estado;
     $('f-periodo').value = F.periodo;
     document.querySelectorAll('#tabla th').forEach((th) => th.removeAttribute('aria-sort'));
     const thSort = document.querySelector(`#tabla th button[data-sort="${F.sort}"]`);
@@ -451,7 +474,8 @@
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
     const alertas = base.filter((l) => l.alerta === 'vencido' || l.alerta === 'hoy').length;
     $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.${alertas ? ` <b style="color:#FCA5A5">${alertas} con picking vencido o que vence hoy sin estar listos.</b>` : ''}`;
-    $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + F.estado : ''})`;
+    const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos' };
+    $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + (ESTADO_TXT[F.estado] || F.estado) : ''})`;
 
     if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="15" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
     const filas = lista.slice(0, visibles).map((l) => {
@@ -481,6 +505,7 @@
   const cambiar = (p) => { F = { ...F, ...p }; visibles = PAGINA; guardar(); pintar(); };
   $('f-tipo').addEventListener('change', (e) => cambiar({ tipo: e.target.value }));
   $('f-picking').addEventListener('change', (e) => cambiar({ picking: e.target.value }));
+  $('f-estado').addEventListener('change', (e) => cambiar({ estado: e.target.value }));
   $('f-asig').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ asig: b.dataset.v }); });
   $('f-periodo').addEventListener('change', (e) => cambiar({ periodo: e.target.value }));
   $('f-tecnico').addEventListener('change', (e) => cambiar({ tecnico: e.target.value }));
