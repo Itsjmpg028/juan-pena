@@ -206,7 +206,8 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="seguimiento-calcs.js?v=4"></script>
+<!-- Se carga con marca de tiempo: GitHub Pages deja copias en caché 10 min y así siempre se usa la última versión. -->
+<script>document.write('<script src="seguimiento-calcs.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
   const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRlQhy6LzGfbp4m05VwMLxzbL-0696oM7sXXApF_HbIlK6ZiHY8D1tb5LjWjBaoeg26kzYJUw6AQGPw/pub?single=true&output=csv&gid=';

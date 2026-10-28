@@ -304,8 +304,8 @@
 
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="shim.js?v=7"></script>
-<script src="calcs.js?v=7"></script>
+<!-- Se cargan con marca de tiempo: GitHub Pages deja copias en caché 10 min y así siempre se usa la última versión. -->
+<script>document.write('<script src="shim.js?t=' + Date.now() + '"><\/script><script src="calcs.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
