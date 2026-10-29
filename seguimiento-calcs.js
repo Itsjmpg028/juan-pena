@@ -84,8 +84,8 @@
   const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
   const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
   // Fecha de corte de avisos de picking: solo los picking desde esta fecha generan aviso (vencido, vence hoy, próximo).
-  // 28/10/2026: todo octubre (antes 26/10, inicio de la inspección de calidad). Vacía = sin corte.
-  const CORTE_ALERTAS = '2026-10-01';
+  // 29/10/2026: de nuevo desde el 26/10 (inicio de la inspección de calidad); el 28/10 estuvo en 01/10. Vacía = sin corte.
+  const CORTE_ALERTAS = '2026-10-26';
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
