@@ -137,7 +137,7 @@
   .tj-band svg { width: 18px; height: 18px; flex: none; }
   .tj-band b { color: var(--color-fg); font-weight: 600; white-space: nowrap; }
   .tj-band small { display: block; font-size: .72rem; }
-  .tj-band.ok { --b: var(--color-ok); border-style: solid; } .tj-band.warn { --b: var(--color-warn); } .tj-band.bad { --b: var(--color-bad); }
+  .tj-band.ok { --b: var(--color-ok); border-style: solid; } .tj-band.info { --b: #0369A1; } .tj-band.warn { --b: var(--color-warn); } .tj-band.bad { --b: var(--color-bad); }
   @media (prefers-color-scheme: dark) { .tj-band { --b: #A78BFA; } }
   .tj-c.pend { background: transparent; border: 1px dashed var(--color-border-line); color: var(--color-fg-muted); text-align: center; min-width: 4.5rem; }
   .tj-orig { display: inline-block; font-size: .64rem; letter-spacing: .04em; font-weight: 700; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 4px; }
@@ -145,9 +145,9 @@
   .tj-estado { font-weight: 600; white-space: nowrap; }
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
-  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Sin-enviar-a-proveedor { color: var(--color-warn); } .tj-estado.Trasladado { color: #0F766E; } .tj-estado.Entregado { color: var(--color-ok); }
+  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Regresó-de-proveedor { color: #0369A1; } .tj-estado.Sin-enviar-a-proveedor { color: var(--color-warn); } .tj-estado.Trasladado { color: #0F766E; } .tj-estado.Entregado { color: var(--color-ok); }
   .tj-estado-fecha { display: block; font-size: .7rem; color: var(--color-fg-muted); white-space: nowrap; }
-  @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } }
+  @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } .tj-estado.Regresó-de-proveedor { color: #38BDF8; } .tj-band.info { --b: #38BDF8; } }
 
   .tj-det td { background: var(--color-bg) !important; padding: 10px 14px 14px; }
   .tj-det h3 { margin: 4px 0 6px; font-size: var(--cds-font-size-caption); text-transform: uppercase; letter-spacing: .06em; color: var(--color-fg-muted); }
@@ -200,6 +200,7 @@
         <option value="Por iniciar">Por iniciar</option>
         <option value="Sin enviar a proveedor">Sin enviar a proveedor (sin 161)</option>
         <option value="En proveedor">En proveedor</option>
+        <option value="Regresó de proveedor">Regresó de proveedor (101)</option>
         <option value="En proceso">En proceso</option>
         <option value="Por inspeccionar">Por inspeccionar</option>
         <option value="Reproceso">Reproceso</option>
@@ -233,6 +234,7 @@
           <option value="inspeccion">Fecha de inspección</option>
           <option value="traslado">Fecha de salida (601/939)</option>
           <option value="envio_prov">Envío a proveedor (161)</option>
+          <option value="regreso_prov">Regreso de proveedor (101)</option>
         </select>
         <select id="f-periodo" aria-label="Periodo">
           <option value="7">Últimos 7 días</option>
@@ -412,6 +414,7 @@
     { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Sin registros todavía' },
     { id: 'Sin enviar a proveedor', k: 'var(--color-warn)', d: 'Taller proveedor sin movimiento 161' },
     { id: 'En proveedor', k: '#7C3AED', d: 'Enviado a proveedor (161) sin regresar' },
+    { id: 'Regresó de proveedor', k: '#0369A1', d: 'Volvió del proveedor (101), pendiente de inspección o trabajo' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
     { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
@@ -460,7 +463,7 @@
   }
 
   const GRUPOS = [
-    { t: 'En proceso', ids: ['Por iniciar', 'Sin enviar a proveedor', 'En proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
+    { t: 'En proceso', ids: ['Por iniciar', 'Sin enviar a proveedor', 'En proveedor', 'Regresó de proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
     { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
   ];
   function kpis(base) {
@@ -539,9 +542,10 @@
     const env = l.envio_prov ? `enviado ${dmy(l.envio_prov)}` : '';
     let cls = '', t, sub;
     if (l.estado === 'Sin enviar a proveedor') { cls = 'warn'; t = 'Pendiente de envío a proveedor'; sub = 'Sin movimiento 161 · sin trabajo del taller'; }
-    else if (l.estado === 'En proveedor') { t = 'En el proveedor'; sub = `${env} · ${S.dias(l.envio_prov, hoyISO())} días allá · sin intervención del taller`; }
+    else if (l.estado === 'En proveedor') { t = 'En el proveedor'; sub = `${env} · ${l.dias_prov} días allá · sin intervención del taller`; }
+    else if (l.estado === 'Regresó de proveedor') { cls = 'info'; t = 'Regresó del proveedor'; sub = `${env} · regresó ${dmy(l.regreso_prov)} · ${l.dias_prov} días allá · pendiente de inspección`; }
     else if (l.estado === 'Reproceso') { cls = 'bad'; t = 'Proveedor · reproceso'; sub = `${env} · calidad pidió reproceso`; }
-    else if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) { cls = 'ok'; t = 'Reparado por el proveedor'; sub = [env, l.fin && `aprobado ${dmy(l.fin)}`, l.traslado && `${l.estado.toLowerCase()} ${dmy(l.traslado)}`].filter(Boolean).join(' · ') + ' · sin intervención del taller'; }
+    else if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) { cls = 'ok'; t = 'Reparado por el proveedor'; sub = [env, l.regreso_prov && `regresó ${dmy(l.regreso_prov)} (${l.dias_prov} d)`, l.fin && `aprobado ${dmy(l.fin)}`, l.traslado && `${l.estado.toLowerCase()} ${dmy(l.traslado)}`].filter(Boolean).join(' · ') + ' · sin intervención del taller'; }
     else { t = 'Proveedor'; sub = `${env} · sin intervención del taller`; }
     return `<td colspan="${S.AREAS.length}"><div class="tj-band ${cls}" title="Todo el trabajo lo hizo el proveedor: no hay asignación ni registros del taller para este lote.">${ICONO_CAMION}<div><b>${t}</b><small>${esc(sub)}</small></div></div></td>`;
   }
@@ -559,8 +563,8 @@
       const area = (S.AREAS.find((A) => A.id === r.area_id) || {}).label || r.area || 'Sin área';
       ev.push({ f: r.fecha, h: r.dt, t: `<b>${esc(area)}</b> · ${esc(titulo(r.tecnico))} · ${esc(r.pieza)} · ${r.piezas ?? '?'} pz · ${esc(r.tipo)}`, d: l.estado === 'Listo' ? 'var(--color-ok)' : 'var(--st-azul)' });
     }
-    const MOV_TXT = { 161: '<b>Envío a proveedor</b> (161)', 601: '<b>Entrega al cliente</b> (601)', 939: '<b>Traslado</b> (939)' };
-    for (const m of l.movs || []) ev.push({ f: m.fecha, h: m.fecha + ' 23:58', t: MOV_TXT[m.mov] || `<b>Movimiento ${esc(m.mov)}</b>`, d: m.mov === '161' ? '#7C3AED' : '#0F766E' });
+    const MOV_TXT = { 161: '<b>Envío a proveedor</b> (161)', 101: '<b>Regreso de proveedor</b> (101)', 601: '<b>Entrega al cliente</b> (601)', 939: '<b>Traslado</b> (939)' };
+    for (const m of l.movs || []) ev.push({ f: m.fecha, h: m.fecha + ' 23:58', t: MOV_TXT[m.mov] || `<b>Movimiento ${esc(m.mov)}</b>`, d: m.mov === '161' ? '#7C3AED' : m.mov === '101' ? '#0369A1' : '#0F766E' });
     if (l.listo && l.d_listo_salida != null) ev.push({ f: l.traslado || hoyISO(), h: (l.traslado || hoyISO()) + ' 23:59', t: l.traslado ? `<b>Listo → salida:</b> ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} (listo por ${l.listo.motivo} el ${dmy(l.listo.fecha)})` : `<b>Sigue en la plataforma</b> · ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} desde que quedó listo (${l.listo.motivo})`, d: 'var(--color-fg-muted)' });
     if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: '<b>Fecha de picking</b>', d: 'var(--color-fg-muted)' });
     if (soloProveedor(l)) ev.push({ f: l.envio_prov || l.entrada || hoyISO(), h: (l.envio_prov || l.entrada || hoyISO()) + ' 23:58:30', t: '<b>Sin intervención del taller</b> · todo el trabajo lo hace el proveedor', d: '#7C3AED' });
@@ -569,7 +573,7 @@
     return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Sin enviar a proveedor': 1.5, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Sin enviar a proveedor': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
@@ -620,7 +624,7 @@
         <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}${l.cambio_plataforma ? '\nCambiado a Taller plataforma: estaba determinado a proveedor, no tiene envío (161) y ya tiene trabajo registrado en el taller.' : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}${l.cambio_plataforma ? '*' : ''}</span></td>
         <td class="tj-date">${dmy(l.entrada)}</td>
         <td>${celdaPicking(l)}</td>
-        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)}</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)} · ${l.dias_prov} d</small>` : l.estado === 'Regresó de proveedor' ? `<small class="tj-estado-fecha">${dmy(l.regreso_prov)} · ${l.dias_prov} d en proveedor</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${soloProveedor(l) ? franjaProveedor(l) : S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
@@ -681,6 +685,8 @@
         'Área a reprocesar': l.insp ? l.insp.reproceso || '' : '',
         'Observaciones calidad': l.insp ? l.insp.obs || '' : '',
         'Envío a proveedor (161)': fx(l.envio_prov),
+        'Regreso de proveedor (101)': fx(l.regreso_prov),
+        'Días en proveedor': l.dias_prov,
         'Fecha listo': fx(l.listo && l.listo.fecha),
         'Listo por': l.listo ? l.listo.motivo : '',
         'Fecha de salida': fx(l.traslado),

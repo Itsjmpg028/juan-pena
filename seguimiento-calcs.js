@@ -134,7 +134,8 @@
       det.set(l, { asignacion: norm(r.asignacion), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
     }
     // Movimientos de salida (hoja Traslados, copia de Salidas 939). Clase de movimiento:
-    // 161 = envío a proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta). Sin clase se asume 939.
+    // 161 = envío a proveedor · 101 = regreso del proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta).
+    // Sin clase se asume 939.
     const sal = new Map();
     for (const r of t.traslados.rows) {
       const l = loteNorm(r.lote);
@@ -205,13 +206,21 @@
       const envios = movs.filter((m) => m.mov === '161');
       const envioProv = envios.length ? envios[envios.length - 1].fecha : null;
       const empaque = celdas.emp.regs.length ? celdas.emp.regs[0].fecha : null;
-      // Hay trabajo registrado después del envío a proveedor: el producto ya volvió.
-      const volvio = envioProv && L.regs.some((r) => r.fecha > envioProv);
+      // Regreso del proveedor (101): el primero después del último envío.
+      const regresoProv = envioProv ? ((movs.find((m) => m.mov === '101' && m.fecha >= envioProv) || {}).fecha || null) : null;
+      // El producto está de vuelta en la plataforma si hay 101, o trabajo del taller o inspección de calidad después del envío.
+      const regPost = envioProv ? L.regs.find((r) => r.fecha > envioProv) : null;
+      const inspPost = envioProv && insp && insp.fecha >= envioProv ? insp : null;
+      const evidencias = [regresoProv, regPost && regPost.fecha, inspPost && inspPost.fecha].filter(Boolean).sort();
+      const volvio = !!(envioProv && evidencias.length);
+      const vueltaProv = volvio ? evidencias[0] : null; // primera señal de que volvió
+      const diasProv = envioProv ? dias(envioProv, vueltaProv || hoy) : null;
       let estado;
       if (salida) estado = salida.mov === '601' ? 'Entregado' : 'Trasladado';
       else if (insp && insp.resultado === 'APROBADO') estado = 'Listo';
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
       else if (envioProv && !volvio) estado = 'En proveedor';
+      else if (regresoProv && !L.regs.some((r) => r.fecha >= regresoProv)) estado = 'Regresó de proveedor'; // 101 sin trabajo posterior
       else if (L.regs.length) {
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
@@ -265,6 +274,9 @@
         traslado,
         salida_mov: salida ? salida.mov : null,
         envio_prov: envioProv,
+        regreso_prov: regresoProv,
+        vuelta_prov: vueltaProv,
+        dias_prov: diasProv,
         // Determinado a proveedor pero sin movimiento 161 (todavía no se ha enviado).
         sin_envio_prov: !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && !salida && !cambioPlataforma),
         cambio_plataforma: cambioPlataforma,

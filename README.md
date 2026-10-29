@@ -35,6 +35,7 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Indicadores en un panel compacto por grupos: En proceso, Cerrados, Picking y Tiempos promedio; cada contador filtra la tabla.
 - Movimientos (hoja *Traslados*, copia por fórmula de Lote, fecha, centro y clase de movimiento de *Salidas 939*), desde el ingreso del lote:
   - 161 = envío a proveedor: estado "En proveedor · desde dd/mm" hasta que haya un registro de trabajo posterior. Lote con determinación PROVEEDOR sin 161: "Sin enviar a proveedor" Si ya tiene trabajo registrado en el taller, su tipo cambia a "Taller plataforma" (marcado con * y explicado al pasar el cursor).
+  - 101 = regreso del proveedor: si no hay trabajo posterior, estado "Regresó de proveedor" (fecha y días que estuvo allá). La inspección de Paul o un registro de trabajo después del envío también cuentan como que el producto volvió.
   - 601 = entrega al cliente (taller): estado "Entregado" con la fecha.
   - 939 = traslado (venta): estado "Trasladado" con la fecha.
 - Última columna "Listo → salida": días desde que el lote quedó listo (inspección APROBADO; si no hay, primer empaque) hasta la primera salida 601 o 939. Si sigue en la plataforma, se cuenta hasta hoy (en cursiva). Tarjeta "Promedio listo → salida".
