@@ -239,8 +239,9 @@
           <tr>
             <th class="tj-sticky"><button type="button" data-sort="lote">Lote</button></th>
             <th>Tipo</th>
-            <th title="Fecha de picking (hoja Determinación). El lote debe estar aprobado por calidad a más tardar ese día."><button type="button" data-sort="picking">Picking</button></th>
             <th><button type="button" data-sort="entrada">Fecha de ingreso</button></th>
+            <th title="Fecha de picking (hoja Determinación). El lote debe estar aprobado por calidad a más tardar ese día."><button type="button" data-sort="picking">Fecha de picking</button></th>
+            <th><button type="button" data-sort="estado">Estado</button></th>
             <th><button type="button" data-sort="asignacion">Asignación</button></th>
             <th>Ebanistería</th>
             <th>Acabados</th>
@@ -248,7 +249,6 @@
             <th>Tapicería</th>
             <th>Empaque</th>
             <th>Inspección</th>
-            <th><button type="button" data-sort="estado">Estado</button></th>
             <th class="tj-num" title="Días entre la fecha de ingreso y la asignación (o el primer registro si no se asignó)"><button type="button" data-sort="d_entrada_inicio">Ingreso → asig.</button></th>
             <th class="tj-num" title="Días entre la asignación (o primer registro) y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_inicio_fin">Asig. → listo</button></th>
             <th class="tj-num" title="Días entre la fecha de ingreso y la inspección aprobada; si sigue abierto, hasta hoy"><button type="button" data-sort="d_total">Total</button></th>
@@ -532,12 +532,12 @@
       return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
         <td class="tj-sticky" title="${esc(tipLote)}"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod">${esc(l.producto)}</span></td>
         <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}${l.cambio_plataforma ? '\nCambiado a Taller plataforma: estaba determinado a proveedor, no tiene envío (161) y ya tiene trabajo registrado en el taller.' : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}${l.cambio_plataforma ? '*' : ''}</span></td>
-        <td>${celdaPicking(l)}</td>
         <td class="tj-date">${dmy(l.entrada)}</td>
+        <td>${celdaPicking(l)}</td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)}</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
-        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)}</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
         <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
         <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>
         <td class="tj-num">${diasTxt(l.d_total, l.abierto)}</td>
@@ -573,10 +573,11 @@
         'Tipo': l.tipo || '',
         'Determinación (hoja)': l.determinacion || '',
         'Centro': l.centro || '',
+        'Fecha de ingreso': fx(l.entrada),
         'Fecha de picking': fx(l.picking),
         'Aviso de picking': { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Próximo a vencer' }[l.alerta] || '',
         'Días para picking': ['vencido', 'hoy', 'proximo', 'en_plazo'].includes(l.alerta) ? l.d_picking : null,
-        'Fecha de ingreso': fx(l.entrada),
+        'Estado': l.estado,
         'Fecha de asignación': fx(l.asignacion),
       };
       for (const A of S.AREAS) {
@@ -592,7 +593,6 @@
         'Origen (inspector)': l.insp ? l.insp.origen || '' : '',
         'Área a reprocesar': l.insp ? l.insp.reproceso || '' : '',
         'Observaciones calidad': l.insp ? l.insp.obs || '' : '',
-        'Estado': l.estado,
         'Envío a proveedor (161)': fx(l.envio_prov),
         'Fecha listo': fx(l.listo && l.listo.fecha),
         'Listo por': l.listo ? l.listo.motivo : '',

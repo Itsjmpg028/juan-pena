@@ -43,3 +43,4 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Al pasar el cursor sobre el lote se ve la PIEZA, la determinación y la fecha de picking.
 - Botón **Descargar Excel**: exporta a .xlsx todos los lotes que cumplen los filtros actuales (no solo los visibles), en el orden de la tabla. Hoja *Lotes* (44 columnas, fechas reales de Excel, autofiltro) y hoja *Filtros* (filtros aplicados, fecha de generación y notas). Usa SheetJS 0.18.5 desde cdnjs, cargado al hacer clic.
 - Filtro "Último movimiento": cuenta la fecha de ingreso, la asignación, los registros, las inspecciones y las salidas (161/601/939).
+- Orden de columnas (29/10): Lote · Tipo · Fecha de ingreso · Fecha de picking · Estado · Asignación · áreas · Inspección · días. El Excel sigue el mismo orden.
