@@ -45,3 +45,5 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Filtro "Último movimiento": cuenta la fecha de ingreso, la asignación, los registros, las inspecciones y las salidas (161/601/939).
 - Orden de columnas (29/10): Lote · Tipo · Fecha de ingreso · Fecha de picking · Estado · Asignación · áreas · Inspección · días. El Excel sigue el mismo orden.
 - Lotes sin intervención del taller (sin asignación ni registros) que están o estuvieron con el proveedor: las 5 columnas de área se reemplazan por una sola franja: "En el proveedor" (enviado dd/mm · N días allá), "Reparado por el proveedor" (enviado · aprobado · salida), "Proveedor · reproceso" o "Pendiente de envío a proveedor". En Excel: columna "Trabajado por".
+- Filtro **Fechas**: se elige la fecha (último movimiento, ingreso, picking, asignación, inspección, salida 601/939 o envío a proveedor 161) y el periodo (últimos 7/15/30/60/90 días, todo, o rango personalizado Desde–Hasta).
+- Filtro **Técnicos** de selección múltiple, con búsqueda y botones "Seleccionar todos" / "Quitar todos"; muestra cuántos lotes tiene cada técnico.

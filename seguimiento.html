@@ -69,6 +69,22 @@
   .tj-xls:hover { background: #166534; } .tj-xls:disabled { opacity: .6; cursor: progress; }
   .tj-xls svg { width: 16px; height: 16px; }
   .tj-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-sm) var(--cds-gap-md); }
+  .tj-fechas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tj-fechas input[type="date"] { width: auto; }
+  .tj-fechas input[hidden] { display: none; }
+  .tj-multi { position: relative; }
+  .tj-multi summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; min-width: 13rem; justify-content: space-between; font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 10px; }
+  .tj-multi summary::-webkit-details-marker { display: none; }
+  .tj-multi summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+  .tj-multi[open] summary::after { transform: rotate(-135deg) translateY(-1px); }
+  .tj-multi summary.parcial { border-color: var(--tj-crimson); }
+  .tj-panel { position: absolute; z-index: 6; top: calc(100% + 4px); left: 0; width: min(20rem, calc(100vw - 32px)); max-height: 22rem; overflow: auto; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); box-shadow: 0 8px 24px rgba(17,24,39,.16); padding: 8px; display: grid; gap: 2px; color: var(--color-fg); }
+  .tj-panel-actions { display: flex; gap: 12px; padding: 2px 2px 6px; border-bottom: 1px solid var(--color-border-line); margin-bottom: 4px; }
+  .tj-panel-actions button { font: inherit; font-size: var(--cds-font-size-caption); background: none; border: 0; color: var(--tj-crimson); cursor: pointer; padding: 2px 0; font-weight: 600; }
+  .tj-panel input[type="search"] { width: 100%; margin-bottom: 4px; }
+  .tj-check { display: flex; align-items: center; gap: 8px; font-size: var(--cds-font-size-body); padding: 3px 2px; cursor: pointer; }
+  .tj-check input { accent-color: var(--tj-crimson); width: 16px; height: 16px; }
+  .tj-check small { margin-left: auto; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
   .tj-reset { font: inherit; padding: 6px 12px; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: transparent; color: var(--color-fg); cursor: pointer; }
 
   .tj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; }
@@ -207,19 +223,43 @@
         <button type="button" data-v="Todos">Todos</button><button type="button" data-v="Con">Con asignación</button><button type="button" data-v="Sin">Sin asignación</button>
       </div>
     </div>
-    <label class="tj-field" for="f-periodo">Último movimiento
-      <select id="f-periodo">
-        <option value="7">Últimos 7 días</option>
-        <option value="15">Últimos 15 días</option>
-        <option value="30">Últimos 30 días</option>
-        <option value="60">Últimos 60 días</option>
-        <option value="90">Últimos 90 días</option>
-        <option value="0">Todo (desde julio)</option>
-      </select>
-    </label>
-    <label class="tj-field" for="f-tecnico">Técnico
-      <select id="f-tecnico"><option value="">Todos</option></select>
-    </label>
+    <div class="tj-field">Fechas
+      <div class="tj-fechas">
+        <select id="f-campo" aria-label="Fecha a filtrar">
+          <option value="ultimo_mov">Último movimiento</option>
+          <option value="entrada">Fecha de ingreso</option>
+          <option value="picking">Fecha de picking</option>
+          <option value="asignacion">Fecha de asignación</option>
+          <option value="inspeccion">Fecha de inspección</option>
+          <option value="traslado">Fecha de salida (601/939)</option>
+          <option value="envio_prov">Envío a proveedor (161)</option>
+        </select>
+        <select id="f-periodo" aria-label="Periodo">
+          <option value="7">Últimos 7 días</option>
+          <option value="15">Últimos 15 días</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="60">Últimos 60 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="0">Todo (desde julio)</option>
+          <option value="rango">Rango personalizado…</option>
+        </select>
+        <input type="date" id="f-desde" aria-label="Desde" hidden>
+        <input type="date" id="f-hasta" aria-label="Hasta" hidden>
+      </div>
+    </div>
+    <div class="tj-field">Técnicos
+      <details class="tj-multi" id="f-tecnicos">
+        <summary id="f-tecnicos-sum"><span>Todos los técnicos</span></summary>
+        <div class="tj-panel">
+          <div class="tj-panel-actions">
+            <button type="button" id="f-tec-todos">Seleccionar todos</button>
+            <button type="button" id="f-tec-ninguno">Quitar todos</button>
+          </div>
+          <input type="search" id="f-tec-buscar" placeholder="Buscar técnico" autocomplete="off">
+          <div id="f-tec-lista"></div>
+        </div>
+      </details>
+    </div>
     <button type="button" class="tj-reset" id="f-reset">Restablecer</button>
   </div>
 
@@ -297,10 +337,12 @@
   const restar = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
   // Filtros (se recuerdan en este navegador)
-  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', tecnico: '', estado: '', picking: '', sort: 'ultimo_mov', dir: -1 };
+  // tecnicos: [] = todos; campo: fecha a la que se aplica el periodo o el rango (desde/hasta, AAAA-MM-DD).
+  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', campo: 'ultimo_mov', desde: '', hasta: '', tecnicos: [], estado: '', picking: '', sort: 'ultimo_mov', dir: -1 };
   let F = { ...DEF };
   try { const s = JSON.parse(localStorage.getItem('tj-seg-filtros2') || 'null'); if (s) F = { ...DEF, ...s, buscar: '', estado: '' }; } catch (e) { /* sin almacenamiento */ }
-  const guardar = () => { try { const { tipo, asig, periodo, tecnico, picking, sort, dir } = F; localStorage.setItem('tj-seg-filtros2', JSON.stringify({ tipo, asig, periodo, tecnico, picking, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
+  if (!Array.isArray(F.tecnicos)) F.tecnicos = [];
+  const guardar = () => { try { const { tipo, asig, periodo, campo, desde, hasta, tecnicos, picking, sort, dir } = F; localStorage.setItem('tj-seg-filtros2', JSON.stringify({ tipo, asig, periodo, campo, desde, hasta, tecnicos, picking, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
 
   const crudo = {};
   let datos = { lotes: [], avisos: [] };
@@ -348,12 +390,22 @@
     pintar();
   }
 
+  let todosTecnicos = [];
   function opcionesTecnico() {
-    const sel = $('f-tecnico');
-    const nombres = [...new Set(datos.lotes.flatMap((l) => l.tecnicos))].sort();
-    const actual = F.tecnico;
-    sel.innerHTML = '<option value="">Todos</option>' + nombres.map((n) => `<option value="${esc(n)}">${esc(corto(n))}</option>`).join('');
-    sel.value = nombres.includes(actual) ? actual : '';
+    const cuenta = new Map();
+    for (const l of datos.lotes) for (const t of l.tecnicos) cuenta.set(t, (cuenta.get(t) || 0) + 1);
+    todosTecnicos = [...cuenta.keys()].sort((a, b) => corto(a).localeCompare(corto(b), 'es'));
+    if (!F.tecnicos.includes('__ninguno__')) F.tecnicos = F.tecnicos.filter((t) => cuenta.has(t));
+    const q = $('f-tec-buscar').value.trim().toLowerCase();
+    $('f-tec-lista').innerHTML = todosTecnicos
+      .filter((t) => !q || t.toLowerCase().includes(q) || corto(t).toLowerCase().includes(q))
+      .map((t) => `<label class="tj-check"><input type="checkbox" value="${esc(t)}"${!F.tecnicos.length || F.tecnicos.includes(t) ? ' checked' : ''}><span>${esc(corto(t))}</span><small>${cuenta.get(t)}</small></label>`).join('') || '<span class="tj-muted">Sin coincidencias</span>';
+    resumenTecnicos();
+  }
+  function resumenTecnicos() {
+    const ninguno = F.tecnicos.includes('__ninguno__'), n = F.tecnicos.length, sum = $('f-tecnicos-sum');
+    sum.classList.toggle('parcial', n > 0);
+    sum.firstElementChild.textContent = ninguno ? 'Ningún técnico' : !n ? 'Todos los técnicos' : n === 1 ? corto(F.tecnicos[0]) : `${n} técnicos`;
   }
 
   const ESTADOS = [
@@ -369,13 +421,22 @@
   ];
 
   function filtrar(sinEstado) {
-    const desde = F.periodo === '0' ? '' : restar(hoyISO(), Number(F.periodo));
+    // Rango de fechas: periodo rápido (últimos N días hasta hoy) o rango personalizado, sobre la fecha elegida.
+    const rango = F.periodo === 'rango';
+    const desde = rango ? F.desde : F.periodo === '0' ? '' : restar(hoyISO(), Number(F.periodo));
+    const hasta = rango ? F.hasta : '';
+    const fechaDe = (l) => (F.campo === 'inspeccion' ? (l.insp && l.insp.fecha) : l[F.campo]) || null;
+    const selTec = new Set(F.tecnicos);
     const q = F.buscar.trim().toLowerCase();
     return datos.lotes.filter((l) => {
       // Un lote con picking pendiente siempre se muestra, aunque no tenga movimiento reciente.
       // Un lote vencido, que vence hoy o próximo a vencer se muestra aunque no tenga movimiento reciente.
-      const pickAviso = ['vencido', 'hoy', 'proximo'].includes(l.alerta);
-      if (desde && !pickAviso && (!l.ultimo_mov || l.ultimo_mov < desde)) return false;
+      // (solo con "Último movimiento" y un periodo rápido)
+      const pickAviso = F.campo === 'ultimo_mov' && !rango && ['vencido', 'hoy', 'proximo'].includes(l.alerta);
+      if ((desde || hasta) && !pickAviso) {
+        const f = fechaDe(l);
+        if (!f || (desde && f < desde) || (hasta && f > hasta)) return false;
+      }
       if (F.tipo === 'TallerTodos') { if (!/^Taller|^Importado/.test(l.tipo)) return false; }
       else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
       // Los contadores (sinEstado) no dependen de los filtros de estado ni de picking.
@@ -386,7 +447,7 @@
       }
       if (F.asig === 'Con' && !l.asignacion) return false;
       if (F.asig === 'Sin' && l.asignacion) return false;
-      if (F.tecnico && !l.tecnicos.includes(F.tecnico)) return false;
+      if (selTec.size && !l.tecnicos.some((t) => selTec.has(t))) return false;
       if (!sinEstado && F.estado) {
         if (F.estado === '__picklisto') { if (!(l.estado === 'Listo' || l.empaque)) return false; }
         else if (F.estado === '__pend') { if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) return false; }
@@ -527,7 +588,10 @@
     $('f-tipo').value = F.tipo; if ($('f-tipo').value !== F.tipo) { F.tipo = 'Todos'; $('f-tipo').value = 'Todos'; }
     $('f-picking').value = F.picking;
     $('f-estado').value = F.estado;
-    $('f-periodo').value = F.periodo;
+    $('f-periodo').value = F.periodo; $('f-campo').value = F.campo;
+    $('f-desde').hidden = $('f-hasta').hidden = F.periodo !== 'rango';
+    $('f-desde').value = F.desde; $('f-hasta').value = F.hasta;
+    resumenTecnicos();
     document.querySelectorAll('#tabla th').forEach((th) => th.removeAttribute('aria-sort'));
     const thSort = document.querySelector(`#tabla th button[data-sort="${F.sort}"]`);
     if (thSort) thSort.parentElement.setAttribute('aria-sort', F.dir > 0 ? 'ascending' : 'descending');
@@ -647,8 +711,9 @@
       ['Estado', F.estado && !$('f-estado').querySelector(`option[value="${CSS.escape(F.estado)}"]`) ? F.estado : sel('f-estado')],
       ['Fecha de picking', sel('f-picking')],
       ['Asignación', asig],
-      ['Último movimiento', sel('f-periodo')],
-      ['Técnico', sel('f-tecnico')],
+      ['Fecha filtrada', sel('f-campo')],
+      ['Periodo', F.periodo === 'rango' ? `Del ${F.desde ? dmy(F.desde) : '(inicio)'} al ${F.hasta ? dmy(F.hasta) : '(hoy)'}` : sel('f-periodo')],
+      ['Técnicos', F.tecnicos.includes('__ninguno__') ? 'Ninguno' : F.tecnicos.length ? F.tecnicos.map(corto).join(', ') : 'Todos'],
       [],
       ['Notas'],
       ['Días calendario. "Sigue abierto" = el lote no tiene inspección aprobada; sus días se cuentan hasta la fecha de generación.'],
@@ -699,8 +764,27 @@
   $('f-picking').addEventListener('change', (e) => cambiar({ picking: e.target.value }));
   $('f-estado').addEventListener('change', (e) => cambiar({ estado: e.target.value }));
   $('f-asig').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cambiar({ asig: b.dataset.v }); });
-  $('f-periodo').addEventListener('change', (e) => cambiar({ periodo: e.target.value }));
-  $('f-tecnico').addEventListener('change', (e) => cambiar({ tecnico: e.target.value }));
+  $('f-periodo').addEventListener('change', (e) => {
+    const v = e.target.value;
+    if (v === 'rango' && !F.desde && !F.hasta) { cambiar({ periodo: v, desde: restar(hoyISO(), 30), hasta: hoyISO() }); return; }
+    cambiar({ periodo: v });
+  });
+  $('f-campo').addEventListener('change', (e) => cambiar({ campo: e.target.value }));
+  $('f-desde').addEventListener('change', (e) => cambiar({ desde: e.target.value }));
+  $('f-hasta').addEventListener('change', (e) => cambiar({ hasta: e.target.value }));
+  // Técnicos (selección múltiple): lista vacía = todos.
+  $('f-tec-lista').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
+    const sel = F.tecnicos.includes('__ninguno__') ? new Set() : F.tecnicos.length ? new Set(F.tecnicos) : new Set(todosTecnicos);
+    if (cb.checked) sel.add(cb.value); else sel.delete(cb.value);
+    // Todos marcados = sin filtro. Ninguno marcado = no mostrar ningún lote.
+    const lista = sel.size === todosTecnicos.length ? [] : sel.size ? [...sel] : ['__ninguno__'];
+    cambiar({ tecnicos: lista });
+  });
+  $('f-tec-todos').addEventListener('click', () => { cambiar({ tecnicos: [] }); opcionesTecnico(); });
+  $('f-tec-ninguno').addEventListener('click', () => { cambiar({ tecnicos: ['__ninguno__'] }); opcionesTecnico(); });
+  $('f-tec-buscar').addEventListener('input', opcionesTecnico);
+  document.addEventListener('click', (e) => { const d = $('f-tecnicos'); if (d.open && !d.contains(e.target)) d.open = false; });
   let t; $('f-buscar').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => cambiar({ buscar: e.target.value }), 150); });
   $('f-reset').addEventListener('click', () => { $('f-buscar').value = ''; cambiar({ ...DEF }); });
   $('kpis').addEventListener('click', (e) => {
