@@ -235,7 +235,8 @@
       // Alerta de picking. El lote cuenta como listo para el picking con lo primero que ocurra:
       // inspección APROBADO, empaque registrado o traslado (939). Picking anteriores al corte no generan alerta.
       const picking = D ? D.picking : null;
-      const cierres = [fin && { fecha: fin, motivo: 'inspección' }, empaque && { fecha: empaque, motivo: 'empacado' }, salida && { fecha: salida.fecha, motivo: salida.mov === '601' ? 'entregado' : 'trasladado' }]
+      // El regreso del proveedor (101) también cuenta: el producto ya está en la plataforma para el picking.
+      const cierres = [fin && { fecha: fin, motivo: 'inspección' }, empaque && { fecha: empaque, motivo: 'empacado' }, regresoProv && { fecha: regresoProv, motivo: 'regresó de proveedor' }, salida && { fecha: salida.fecha, motivo: salida.mov === '601' ? 'entregado' : 'trasladado' }]
         .filter(Boolean).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
       const cierre = cierres[0] || null;
       let alerta = null;
