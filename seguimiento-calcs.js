@@ -244,7 +244,8 @@
       // (cambio de estrategia interno), así que se muestra como Taller plataforma.
       const cambioPlataforma = !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && L.regs.length);
       const tipo = cambioPlataforma ? 'Taller plataforma' : D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
-      const fechas = [asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha), ...movs.map((m) => m.fecha)].filter(Boolean).sort();
+      // Último movimiento: ingreso, asignación, registros, inspecciones y salidas (161/601/939).
+      const fechas = [entrada && entrada.fecha, asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha), ...movs.map((m) => m.fecha)].filter(Boolean).sort();
       out.push({
         lote: L.lote,
         producto,
