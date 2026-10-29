@@ -83,9 +83,9 @@
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
   const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
   const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
-  // Fecha de corte de alertas: solo los picking desde esta fecha generan alerta o incumplimiento (inicio de la
-  // inspección de calidad, 26/10/2026; decisión del usuario 28/10). Vacía = sin corte.
-  const CORTE_ALERTAS = '2026-10-26';
+  // Fecha de corte de avisos de picking: solo los picking desde esta fecha generan aviso (vencido, vence hoy, próximo).
+  // 28/10/2026: todo octubre (antes 26/10, inicio de la inspección de calidad). Vacía = sin corte.
+  const CORTE_ALERTAS = '2026-10-01';
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
