@@ -116,6 +116,13 @@
   .tj-c.sinreg { background: var(--st-sinreg-bg); color: var(--st-sinreg-fg); }
   .tj-c.sinreg b { color: var(--color-fg); }
   .tj-c.gris { background: var(--st-gris-bg); color: var(--st-gris-fg); text-align: center; min-width: 4.5rem; }
+  /* Franja única para lotes trabajados solo por el proveedor (sin intervención del taller) */
+  .tj-band { display: flex; align-items: center; gap: 10px; min-width: 30rem; border-radius: 6px; padding: 6px 12px; min-height: 38px; line-height: 1.25; color: var(--b, #7C3AED); background: color-mix(in srgb, var(--b, #7C3AED) 12%, var(--color-panel)); border: 1px dashed color-mix(in srgb, var(--b, #7C3AED) 55%, transparent); }
+  .tj-band svg { width: 18px; height: 18px; flex: none; }
+  .tj-band b { color: var(--color-fg); font-weight: 600; white-space: nowrap; }
+  .tj-band small { display: block; font-size: .72rem; }
+  .tj-band.ok { --b: var(--color-ok); border-style: solid; } .tj-band.warn { --b: var(--color-warn); } .tj-band.bad { --b: var(--color-bad); }
+  @media (prefers-color-scheme: dark) { .tj-band { --b: #A78BFA; } }
   .tj-c.pend { background: transparent; border: 1px dashed var(--color-border-line); color: var(--color-fg-muted); text-align: center; min-width: 4.5rem; }
   .tj-orig { display: inline-block; font-size: .64rem; letter-spacing: .04em; font-weight: 700; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 4px; }
   .tj-abierto { color: var(--color-fg-muted); font-style: italic; }
@@ -464,6 +471,20 @@
   const TIPO_CLASE = { 'Taller plataforma': 'tp', 'Taller proveedor': 'tv', Taller: 'ta', Importado: 'im', Venta: 've' };
   const TIPO_TXT = { Taller: 'Taller s/ det.', Venta: 'Venta', Importado: 'Importado' };
 
+  // Lote que no tuvo ninguna intervención del taller (ni asignación ni registros) y está o estuvo con el proveedor.
+  const soloProveedor = (l) => !l.regs.length && !l.asignacion && (l.envio_prov || l.estado === 'Sin enviar a proveedor');
+  const ICONO_CAMION = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg>';
+  function franjaProveedor(l) {
+    const env = l.envio_prov ? `enviado ${dmy(l.envio_prov)}` : '';
+    let cls = '', t, sub;
+    if (l.estado === 'Sin enviar a proveedor') { cls = 'warn'; t = 'Pendiente de envío a proveedor'; sub = 'Sin movimiento 161 · sin trabajo del taller'; }
+    else if (l.estado === 'En proveedor') { t = 'En el proveedor'; sub = `${env} · ${S.dias(l.envio_prov, hoyISO())} días allá · sin intervención del taller`; }
+    else if (l.estado === 'Reproceso') { cls = 'bad'; t = 'Proveedor · reproceso'; sub = `${env} · calidad pidió reproceso`; }
+    else if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) { cls = 'ok'; t = 'Reparado por el proveedor'; sub = [env, l.fin && `aprobado ${dmy(l.fin)}`, l.traslado && `${l.estado.toLowerCase()} ${dmy(l.traslado)}`].filter(Boolean).join(' · ') + ' · sin intervención del taller'; }
+    else { t = 'Proveedor'; sub = `${env} · sin intervención del taller`; }
+    return `<td colspan="${S.AREAS.length}"><div class="tj-band ${cls}" title="Todo el trabajo lo hizo el proveedor: no hay asignación ni registros del taller para este lote.">${ICONO_CAMION}<div><b>${t}</b><small>${esc(sub)}</small></div></div></td>`;
+  }
+
   const diasTxt = (n, abierto) => (n == null ? '<span class="tj-muted">—</span>' : abierto ? `<span class="tj-abierto">${n}</span>` : String(n));
 
   function detalle(l) {
@@ -481,9 +502,10 @@
     for (const m of l.movs || []) ev.push({ f: m.fecha, h: m.fecha + ' 23:58', t: MOV_TXT[m.mov] || `<b>Movimiento ${esc(m.mov)}</b>`, d: m.mov === '161' ? '#7C3AED' : '#0F766E' });
     if (l.listo && l.d_listo_salida != null) ev.push({ f: l.traslado || hoyISO(), h: (l.traslado || hoyISO()) + ' 23:59', t: l.traslado ? `<b>Listo → salida:</b> ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} (listo por ${l.listo.motivo} el ${dmy(l.listo.fecha)})` : `<b>Sigue en la plataforma</b> · ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} desde que quedó listo (${l.listo.motivo})`, d: 'var(--color-fg-muted)' });
     if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: '<b>Fecha de picking</b>', d: 'var(--color-fg-muted)' });
+    if (soloProveedor(l)) ev.push({ f: l.envio_prov || l.entrada || hoyISO(), h: (l.envio_prov || l.entrada || hoyISO()) + ' 23:58:30', t: '<b>Sin intervención del taller</b> · todo el trabajo lo hace el proveedor', d: '#7C3AED' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/23:5[89]$/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
   const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Sin enviar a proveedor': 1.5, 'En proveedor': 2, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
@@ -536,7 +558,7 @@
         <td>${celdaPicking(l)}</td>
         <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)}</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
-        ${S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
+        ${soloProveedor(l) ? franjaProveedor(l) : S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
         <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
         <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>
@@ -579,6 +601,7 @@
         'Días para picking': ['vencido', 'hoy', 'proximo', 'en_plazo'].includes(l.alerta) ? l.d_picking : null,
         'Estado': l.estado,
         'Fecha de asignación': fx(l.asignacion),
+        'Trabajado por': soloProveedor(l) ? 'Solo proveedor' : l.envio_prov ? 'Proveedor y taller' : l.regs.length ? 'Taller' : '',
       };
       for (const A of S.AREAS) {
         const c = l.celdas[A.id];
