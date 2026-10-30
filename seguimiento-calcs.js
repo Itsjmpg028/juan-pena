@@ -78,7 +78,7 @@
     },
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'], material: ['Material'] },
     traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'], mov: ['Clase de movimiento'] },
-    determinacion: { lote: ['Lote'], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
+    determinacion: { lote: ['Lote'], proveedor: ['Proveedor', 'PROVEEDOR '], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
   const TIPO_DET = { TALLER: 'Taller plataforma', PROVEEDOR: 'Taller proveedor', 'PRODUCTO IMPORTADO': 'Importado' };
@@ -131,7 +131,7 @@
       const l = loteNorm(r.lote);
       if (!esLote(l)) continue;
       get(l);
-      det.set(l, { asignacion: norm(r.asignacion), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
+      det.set(l, { asignacion: norm(r.asignacion), proveedor: String(r.proveedor || '').trim(), pieza: r.pieza, picking: isoDate(r.picking), picking_txt: r.picking });
     }
     // Movimientos de salida (hoja Traslados, copia de Salidas 939). Clase de movimiento:
     // 161 = envío a proveedor · 101 = regreso del proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta).
@@ -265,6 +265,7 @@
         tipo,
         determinacion: D ? D.asignacion : '',
         pieza: D ? D.pieza : '',
+        proveedor: D ? D.proveedor : '',
         picking,
         picking_txt: D ? D.picking_txt : '',
         alerta,
