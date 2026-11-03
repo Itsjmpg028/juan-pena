@@ -357,13 +357,20 @@
   const abiertos = new Set();
   let ultimaCarga = null, ultimaInv = 0;
 
+  // Google a veces falla en una petición (sobre todo minutos después de publicar una hoja): se reintenta hasta 3 veces.
   async function traer(id) {
     const f = FUENTES[id];
-    const res = await fetch(BASE + f.gid + '&_t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
-    return d3.csvParseRows(text);
+    let ultimo;
+    for (let intento = 0; intento < 3; intento++) {
+      try {
+        const res = await fetch(BASE + f.gid + '&_t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
+        return d3.csvParseRows(text);
+      } catch (err) { ultimo = err; await new Promise((r) => setTimeout(r, 1500 * (intento + 1))); }
+    }
+    throw ultimo;
   }
 
   async function cargar(forzarInv) {
