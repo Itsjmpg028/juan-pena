@@ -328,6 +328,7 @@
     inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
     inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false, sin: 'las fechas de ingreso quedan vacías' },
     traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'no se ven envíos a proveedor, entregas ni traslados' },
+    manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false, sin: 'no se aplican los lotes catalogados como listos a mano' },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
   };
   const REFRESCO_MIN = 5;
@@ -528,6 +529,7 @@
 
   function celdaInsp(l) {
     const i = l.insp;
+    if (l.manual) return `<div class="tj-c verde" title="${esc(`${l.manual.motivo}${l.manual.quien ? ' · ' + l.manual.quien : ''} · ${dmy(l.manual.fecha)}\n(hoja Cierres manuales, sin inspección de calidad)`)}"><b>Listo (manual)</b><small>${dm(l.manual.fecha)}</small></div>`;
     if (!i) return '<div class="tj-c pend">Pendiente</div>';
     const orig = i.origen ? `<span class="tj-orig">${esc(i.origen)}</span>` : '';
     const tip = `${titulo(i.inspector)} · ${dmy(i.fecha)}${i.reproceso ? '\nReprocesar: ' + i.reproceso : ''}${i.obs ? '\n' + i.obs : ''}${l.inspecciones.length > 1 ? `\n${l.inspecciones.length} inspecciones` : ''}`;
@@ -585,6 +587,7 @@
     if (l.listo && l.d_listo_salida != null) ev.push({ f: l.traslado || hoyISO(), h: (l.traslado || hoyISO()) + ' 23:59', t: l.traslado ? `<b>Listo → salida:</b> ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} (listo por ${l.listo.motivo} el ${dmy(l.listo.fecha)})` : `<b>Sigue en la plataforma</b> · ${l.d_listo_salida} ${l.d_listo_salida === 1 ? 'día' : 'días'} desde que quedó listo (${l.listo.motivo})`, d: 'var(--color-fg-muted)' });
     if (l.picking) ev.push({ f: l.picking, h: l.picking + ' 23:59', t: '<b>Fecha de picking</b>', d: 'var(--color-fg-muted)' });
     if (soloProveedor(l)) ev.push({ f: l.envio_prov || l.entrada || hoyISO(), h: (l.envio_prov || l.entrada || hoyISO()) + ' 23:58:30', t: '<b>Sin intervención del taller</b> · todo el trabajo lo hace el proveedor', d: '#7C3AED' });
+    if (l.manual) ev.push({ f: l.manual.fecha, h: l.manual.fecha + ' 23:59', t: `<b>Catalogado como listo</b> (cierre manual)${l.manual.quien ? ' · ' + esc(l.manual.quien) : ''}${l.manual.motivo ? ' · ' + esc(l.manual.motivo) : ''}`, d: 'var(--color-ok)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
     return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.proveedor ? ' · proveedor: ' + esc(l.proveedor) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
@@ -697,7 +700,7 @@
         o[`${A.label} - estado`] = CELDA_TXT[c.estado] || '';
       }
       Object.assign(o, {
-        'Inspección - resultado': l.insp ? titulo(l.insp.resultado) : 'Pendiente',
+        'Inspección - resultado': l.manual ? 'Listo (cierre manual)' : l.insp ? titulo(l.insp.resultado) : 'Pendiente',
         'Inspección - fecha': fx(l.insp && l.insp.fecha),
         'Inspector': l.insp ? corto(l.insp.inspector) : '',
         'Origen (inspector)': l.insp ? l.insp.origen || '' : '',
