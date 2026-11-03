@@ -146,7 +146,7 @@
   .tj-estado { font-weight: 600; white-space: nowrap; }
   .tj-estado.Listo { color: var(--color-ok); } .tj-estado.Reproceso { color: var(--color-bad); } .tj-estado.Por-iniciar { color: var(--color-bad); }
   .tj-estado.Por-inspeccionar { color: var(--color-warn); } .tj-estado.En-proceso { color: var(--color-fg); }
-  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Regresó-de-proveedor { color: #0369A1; } .tj-estado.Sin-enviar-a-proveedor { color: var(--color-warn); } .tj-estado.Trasladado { color: #0F766E; } .tj-estado.Entregado { color: var(--color-ok); }
+  .tj-estado.En-proveedor { color: #7C3AED; } .tj-estado.Regresó-de-proveedor { color: #0369A1; } .tj-estado.Proveedor-no-ha-venido-por-el-servicio { color: var(--color-warn); } .tj-estado.Trasladado { color: #0F766E; } .tj-estado.Entregado { color: var(--color-ok); }
   .tj-estado-fecha { display: block; font-size: .7rem; color: var(--color-fg-muted); white-space: nowrap; }
   @media (prefers-color-scheme: dark) { .tj-estado.En-proveedor { color: #A78BFA; } .tj-estado.Regresó-de-proveedor { color: #38BDF8; } .tj-band.info { --b: #38BDF8; } }
 
@@ -199,7 +199,7 @@
         <option value="__picklisto">Listos para picking (aprobados o empacados)</option>
         <option value="__pend">No listos</option>
         <option value="Por iniciar">Por iniciar</option>
-        <option value="Sin enviar a proveedor">Sin enviar a proveedor (sin 161)</option>
+        <option value="Proveedor no ha venido por el servicio">Proveedor no ha venido por el servicio (sin 161)</option>
         <option value="En proveedor">En proveedor</option>
         <option value="Regresó de proveedor">Regresó de proveedor (101)</option>
         <option value="En proceso">En proceso</option>
@@ -435,7 +435,7 @@
 
   const ESTADOS = [
     { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Sin registros todavía' },
-    { id: 'Sin enviar a proveedor', k: 'var(--color-warn)', d: 'Taller proveedor sin movimiento 161' },
+    { id: 'Proveedor no ha venido por el servicio', k: 'var(--color-warn)', d: 'Taller proveedor sin movimiento 161' },
     { id: 'En proveedor', k: '#7C3AED', d: 'Enviado a proveedor (161) sin regresar' },
     { id: 'Regresó de proveedor', k: '#0369A1', d: 'Volvió del proveedor (101), pendiente de inspección o trabajo' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
@@ -487,7 +487,7 @@
   }
 
   const GRUPOS = [
-    { t: 'En proceso', ids: ['Por iniciar', 'Sin enviar a proveedor', 'En proveedor', 'Regresó de proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
+    { t: 'En proceso', ids: ['Por iniciar', 'Proveedor no ha venido por el servicio', 'En proveedor', 'Regresó de proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
     { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
   ];
   function kpis(base) {
@@ -562,12 +562,12 @@
   const TIPO_TXT = { Taller: 'Taller s/ det.', Venta: 'Venta', Importado: 'Importado' };
 
   // Lote que no tuvo ninguna intervención del taller (ni asignación ni registros) y está o estuvo con el proveedor.
-  const soloProveedor = (l) => !l.regs.length && !l.asignacion && (l.envio_prov || l.estado === 'Sin enviar a proveedor');
+  const soloProveedor = (l) => !l.regs.length && !l.asignacion && (l.envio_prov || l.estado === 'Proveedor no ha venido por el servicio');
   const ICONO_CAMION = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg>';
   function franjaProveedor(l) {
     const env = l.envio_prov ? `enviado ${dmy(l.envio_prov)}` : '';
     let cls = '', t, sub;
-    if (l.estado === 'Sin enviar a proveedor') { cls = 'warn'; t = 'Pendiente de envío a proveedor'; sub = 'Sin movimiento 161 · sin trabajo del taller'; }
+    if (l.estado === 'Proveedor no ha venido por el servicio') { cls = 'warn'; t = 'Proveedor no ha venido por el servicio'; sub = 'Sin movimiento 161 · sin trabajo del taller'; }
     else if (l.estado === 'En proveedor') { t = 'En el proveedor'; sub = `${env} · ${l.dias_prov} ${l.dias_prov === 1 ? 'día' : 'días'} allá · sin intervención del taller`; }
     else if (l.estado === 'Regresó de proveedor') { cls = 'info'; t = 'Regresó del proveedor'; sub = `${env} · regresó ${dmy(l.regreso_prov)} · ${l.dias_prov} ${l.dias_prov === 1 ? 'día' : 'días'} allá · pendiente de inspección`; }
     else if (l.estado === 'Reproceso') { cls = 'bad'; t = 'Proveedor · reproceso'; sub = `${env} · calidad pidió reproceso`; }
@@ -601,7 +601,7 @@
     return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.proveedor ? ' · proveedor: ' + esc(l.proveedor) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Sin enviar a proveedor': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Proveedor no ha venido por el servicio': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
@@ -653,7 +653,7 @@
         <td><span class="tj-tipo ${TIPO_CLASE[l.tipo] || 'ot'}" title="Centro ${esc(l.centro || '—')}${l.determinacion ? ' · Determinación: ' + esc(l.determinacion) : ''}${l.cambio_plataforma ? '\nCambiado a Taller plataforma: estaba determinado a proveedor, no tiene envío (161) y ya tiene trabajo registrado en el taller.' : ''}">${esc(TIPO_TXT[l.tipo] || l.tipo || '—')}${l.cambio_plataforma ? '*' : ''}</span></td>
         <td class="tj-date">${dmy(l.entrada)}</td>
         <td>${celdaPicking(l)}</td>
-        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)} · ${l.dias_prov} d</small>` : l.estado === 'Regresó de proveedor' ? `<small class="tj-estado-fecha">${dmy(l.regreso_prov)} · ${l.dias_prov} d en proveedor</small>` : l.sin_envio_prov && l.estado !== 'Sin enviar a proveedor' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Sin envío a proveedor (161)</small>' : ''}</td>
+        <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)} · ${l.dias_prov} d</small>` : l.estado === 'Regresó de proveedor' ? `<small class="tj-estado-fecha">${dmy(l.regreso_prov)} · ${l.dias_prov} d en proveedor</small>` : l.sin_envio_prov && l.estado !== 'Proveedor no ha venido por el servicio' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Proveedor no ha venido (sin 161)</small>' : ''}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
         ${soloProveedor(l) ? franjaProveedor(l) : S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>

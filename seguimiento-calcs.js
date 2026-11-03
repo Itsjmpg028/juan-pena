@@ -244,7 +244,7 @@
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
         estado = celdas.emp.estado === 'azul' || completas ? 'Por inspeccionar' : 'En proceso';
-      } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Sin enviar a proveedor'; // determinado a proveedor, sin movimiento 161
+      } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Proveedor no ha venido por el servicio'; // determinado a proveedor, sin movimiento 161
       else estado = 'Por iniciar';
 
       const fin = manualVale ? man.fecha : inspApr ? insp.fecha : empListo;
