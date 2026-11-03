@@ -439,9 +439,9 @@
     { id: 'En proveedor', k: '#7C3AED', d: 'Enviado a proveedor (161) sin regresar' },
     { id: 'Regresó de proveedor', k: '#0369A1', d: 'Volvió del proveedor (101), pendiente de inspección o trabajo' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
-    { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas o empacados' },
+    { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas, sin empaque ni inspección' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
-    { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada' },
+    { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada, empacado o cierre manual' },
     { id: 'Entregado', k: 'var(--color-ok)', d: 'Entregado al cliente (601)' },
     { id: 'Trasladado', k: '#0F766E', d: 'Trasladado (939)' },
   ];
@@ -537,6 +537,7 @@
   function celdaInsp(l) {
     const i = l.insp;
     if (l.manual) return `<div class="tj-c verde" title="${esc(`${l.manual.motivo}${l.manual.quien ? ' · ' + l.manual.quien : ''} · ${dmy(l.manual.fecha)}\n(hoja Cierres manuales, sin inspección de calidad)`)}"><b>Listo (manual)</b><small>${dm(l.manual.fecha)}</small></div>`;
+    if (l.empacado_listo) return `<div class="tj-c verde" title="${esc(`Listo por empaque registrado el ${dmy(l.empacado_listo)}. Aún sin inspección aprobada de calidad.`)}"><b>Listo (empacado)</b><small>${dm(l.empacado_listo)}</small></div>`;
     if (!i) return '<div class="tj-c pend">Pendiente</div>';
     const orig = i.origen ? `<span class="tj-orig">${esc(i.origen)}</span>` : '';
     const tip = `${titulo(i.inspector)} · ${dmy(i.fecha)}${i.reproceso ? '\nReprocesar: ' + i.reproceso : ''}${i.obs ? '\n' + i.obs : ''}${l.inspecciones.length > 1 ? `\n${l.inspecciones.length} inspecciones` : ''}`;
@@ -707,7 +708,7 @@
         o[`${A.label} - estado`] = CELDA_TXT[c.estado] || '';
       }
       Object.assign(o, {
-        'Inspección - resultado': l.manual ? 'Listo (cierre manual)' : l.insp ? titulo(l.insp.resultado) : 'Pendiente',
+        'Inspección - resultado': l.manual ? 'Listo (cierre manual)' : l.empacado_listo ? 'Listo (empacado)' : l.insp ? titulo(l.insp.resultado) : 'Pendiente',
         'Inspección - fecha': fx(l.insp && l.insp.fecha),
         'Inspector': l.insp ? corto(l.insp.inspector) : '',
         'Origen (inspector)': l.insp ? l.insp.origen || '' : '',

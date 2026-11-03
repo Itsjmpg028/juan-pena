@@ -177,8 +177,13 @@
       // Cierre manual: vale si no hay una inspección aprobada ni una inspección posterior a esa fecha.
       const man = manual.get(L.lote) || null;
       const manualVale = !!(man && !(insp && (insp.resultado === 'APROBADO' || insp.fecha > man.fecha)));
-      const aprobado = (insp && insp.resultado === 'APROBADO') || manualVale;
-      const reproArea = !manualVale && insp && insp.resultado === 'REPROCESO' ? areaDe(insp.reproceso, '') : null;
+      // Empaque (03/11): un lote empacado (por el tapicero o el empacador) queda Listo desde su primer empaque.
+      // Si la inspección más reciente es REPROCESO, solo cuenta un empaque posterior a esa inspección.
+      const inspApr = !!(insp && insp.resultado === 'APROBADO');
+      const empaques = L.regs.filter((r) => r.area_id === 'emp' && !(insp && insp.resultado === 'REPROCESO' && r.fecha < insp.fecha)).map((r) => r.fecha).sort();
+      const empListo = !inspApr && !manualVale && empaques.length ? empaques[0] : null;
+      const aprobado = inspApr || manualVale || !!empListo;
+      const reproArea = !aprobado && insp && insp.resultado === 'REPROCESO' ? areaDe(insp.reproceso, '') : null;
 
       const inicio = (asig && asig.fecha) || (L.regs[0] && L.regs[0].fecha) || null;
       const entradas = (inv.get(L.lote) || []).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
@@ -242,8 +247,8 @@
       } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Sin enviar a proveedor'; // determinado a proveedor, sin movimiento 161
       else estado = 'Por iniciar';
 
-      const fin = manualVale ? man.fecha : aprobado ? insp.fecha : null;
-      const motivoFin = manualVale ? 'cierre manual' : 'inspección';
+      const fin = manualVale ? man.fecha : inspApr ? insp.fecha : empListo;
+      const motivoFin = manualVale ? 'cierre manual' : inspApr ? 'inspección' : empListo ? 'empacado' : '';
       // Fecha en que el lote quedó listo: inspección APROBADO; si no hay inspección, el primer empaque.
       const listo = fin ? { fecha: fin, motivo: motivoFin } : empaque ? { fecha: empaque, motivo: 'empacado' } : null;
       const dListoSalida = listo && (!traslado || traslado >= listo.fecha) ? dias(listo.fecha, traslado || hoy) : null;
@@ -310,6 +315,7 @@
         celdas,
         insp,
         manual: manualVale ? man : null,
+        empacado_listo: empListo,
         inspecciones: L.insp,
         estado,
         fin,
