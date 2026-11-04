@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <link rel="stylesheet" href="tokens.css?v=7">
 <style>
-  .tj { --tj-crimson: #D2132C; --tj-ink: #1F2937; display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .tj { --tj-crimson: #D2132C; --tj-ink: #1F2937; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
   .tj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
   .tj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
   .tj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); }
@@ -30,7 +30,7 @@
   .tj :is(select, button, input):focus-visible { outline: 2px solid var(--tj-crimson); outline-offset: 1px; }
   .tj-rango { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); align-self: center; }
 
-  .tj-sec { display: grid; gap: var(--cds-gap-sm); }
+  .tj-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-sm); }
   .tj-sec > h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: 600; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .tj-sec > h2 small { font-size: var(--cds-font-size-caption); font-weight: 400; color: var(--color-fg-muted); }
 
@@ -72,8 +72,19 @@
   .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
   .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
   @media (prefers-color-scheme: dark) { .tj-seg button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); } }
-  .tj-chart { position: relative; width: 100%; min-height: 240px; }
-  .tj-chart svg { display: block; width: 100%; height: 260px; overflow: visible; }
+  .tj-flujo-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+  @media (max-width: 860px) { .tj-flujo-dos { grid-template-columns: 1fr; } }
+  .tj-flujo-dos[hidden] { display: none; }
+  .tj-flujo-col { display: grid; gap: 4px; min-width: 0; }
+  .tj-flujo-col h3 { margin: 0; font-size: var(--cds-font-size-body); font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .tj-flujo-col h3 small { font-size: var(--cds-font-size-caption); font-weight: 400; color: var(--color-fg-muted); }
+  .tj-flujo-col h3 .neto { margin-left: auto; font-size: var(--cds-font-size-caption); font-weight: 600; }
+  .tj-flujo-col h3 .neto.sube { color: var(--color-bad); } .tj-flujo-col h3 .neto.baja { color: var(--color-ok); }
+  .tj-flujo-col .vacio { padding: 40px 0; text-align: center; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); border: 1px dashed var(--color-border-line); border-radius: 8px; }
+  .tj-tabla th.grp { text-align: center; border-bottom: 1px solid var(--color-border-line); }
+  .tj-tabla .sep { border-left: 2px solid var(--color-border-line); }
+  .tj-chart { position: relative; width: 100%; min-height: 220px; }
+  .tj-chart svg { display: block; width: 100%; height: 230px; overflow: visible; }
   .tj-chart .grid line { stroke: var(--cds-chart-grid); }
   .tj-chart .eje text { fill: var(--color-fg-muted); font-size: 11px; font-family: var(--font-anthropic-sans); }
   .tj-chart .base { stroke: var(--cds-chart-axis); }
@@ -104,7 +115,7 @@
   .tj-calor th.n, .tj-calor td.n { text-align: right; }
   /* Bloque 6 · Calidad */
   .tj-cal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cds-gap-sm); }
-  @media (max-width: 900px) { .tj-cal-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .tj-cal-grid { grid-template-columns: minmax(0, 1fr); } }
   .tj-hbar { display: grid; grid-template-columns: minmax(6rem, 9rem) 1fr 2.5rem; gap: 8px; align-items: center; font-size: var(--cds-font-size-caption); }
   .tj-hbar .t { height: 12px; border-radius: 0 4px 4px 0; background: var(--color-bad); }
   .tj-hbar .v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -178,18 +189,15 @@
   </section>
 
   <section class="tj-sec" aria-labelledby="h-flujo">
-    <h2 id="h-flujo">Flujo semanal <small>lotes en seguimiento que entran, quedan listos y salen cada semana</small></h2>
+    <h2 id="h-flujo">Flujo semanal <small>lotes que entran, quedan listos y salen cada semana · taller y venta por separado</small></h2>
     <div class="tj-panel">
       <div class="tj-flujo-top">
         <div class="tj-leyenda" id="flujo-leyenda"></div>
-        <div class="tj-seg" role="group" aria-label="Qué lotes" id="flujo-grupo">
-          <button type="button" data-fg="todos" aria-pressed="true">Todos</button><button type="button" data-fg="taller" aria-pressed="false">Taller</button><button type="button" data-fg="venta" aria-pressed="false">Venta</button>
-        </div>
         <div class="tj-seg" role="group" aria-label="Vista">
           <button type="button" data-vista="grafica" aria-pressed="true">Gráfica</button><button type="button" data-vista="tabla" aria-pressed="false">Tabla</button>
         </div>
       </div>
-      <div class="tj-chart" id="flujo-chart"></div>
+      <div class="tj-flujo-dos" id="flujo-graficas"></div>
       <div class="tj-tabla-wrap" id="flujo-tabla" hidden></div>
       <p class="tj-neto" id="flujo-neto"></p>
       <div class="tj-tip" id="flujo-tip" hidden></div>
@@ -239,7 +247,7 @@
       <div class="tj-panel" id="cal-resumen"></div>
       <div class="tj-panel"><h3 class="tj-mini-h">Reproceso por área</h3><div id="cal-areas"></div></div>
       <div class="tj-panel"><h3 class="tj-mini-h">Por origen</h3><div id="cal-origen"></div></div>
-      <div class="tj-panel"><h3 class="tj-mini-h">Por inspector</h3><div id="cal-inspector"></div></div>
+      <div class="tj-panel"><h3 class="tj-mini-h">Por inspector</h3><div id="cal-inspector" style="overflow-x:auto"></div></div>
     </div>
   </section>
 
@@ -417,7 +425,7 @@
     $('prov-total').innerHTML = PR.filas.length ? `<tr><td>Total</td><td class="n">${PR.total.enviados}</td><td class="n">${PR.total.regresaron}</td><td class="n">${d1(PR.total.diasProm)}</td><td class="n">${PR.total.pendientes}</td><td></td><td></td></tr>` : '';
 
     ultimoR = r;
-    pintarFlujo(grupoFlujo === 'taller' ? r.flujoTaller : grupoFlujo === 'venta' ? r.flujoVenta : r.flujo);
+    pintarFlujo(r);
     pintarEtapas(r.etapas);
     pintarAntiguedad(r.antiguedad);
     pintarCalidad(r.calidad);
@@ -426,77 +434,93 @@
     $('resumen').innerHTML = `Periodo ${dmy(desde)} – ${dmy(hasta)}: picking a tiempo <b>${pct(A.picking.valor)}</b>, ciclo <b>${d1(A.ciclo.valor)}</b>, listo → salida <b>${d1(A.salida.valor)}</b>, calidad a la primera <b>${pct(A.calidad.valor)}</b>. ${malos ? `<b>${malos} de 4</b> indicadores lejos de la meta.` : 'Indicadores en meta o cerca.'}`;
   }
 
-  // ---- Bloque 2 · Flujo semanal: barras agrupadas por semana (SVG propio) ----
+  // ---- Bloque 2 · Flujo semanal: Taller y Venta lado a lado, misma escala (SVG propio) ----
   const SERIES = [
     { k: 'entraron', nombre: 'Entraron', c: 'var(--fl-1)' },
     { k: 'listos', nombre: 'Quedaron listos', c: 'var(--fl-2)' },
     { k: 'salieron', nombre: 'Salieron (601/939)', c: 'var(--fl-3)' },
   ];
-  let vistaFlujo = 'grafica', ultimoFlujo = null;
+  const GRUPOS_FL = [
+    { id: 'taller', nombre: 'Taller', sub: 'plataforma + proveedor', clave: 'flujoTaller', incluido: () => ['Todos', 'TallerTodos', 'Taller plataforma', 'Taller proveedor'].includes(F.tipo) },
+    { id: 'venta', nombre: 'Recuperación / venta', sub: 'centros de venta', clave: 'flujoVenta', incluido: () => ['Todos', 'Venta'].includes(F.tipo) },
+  ];
+  let vistaFlujo = 'grafica', ultimoR = null;
   const lblSem = (s) => `${dm(s.semana)}${s.parcial ? '*' : ''}`;
-  function pintarFlujo(fl) {
-    ultimoFlujo = fl;
-    const sem = fl.semanas.slice(-14);
-    $('flujo-leyenda').innerHTML = SERIES.map((x) => `<span><i style="background:${x.c}"></i>${x.nombre} <b>${fl.total[x.k]}</b></span>`).join('');
-    const n = fl.total.neto;
-    $('flujo-neto').innerHTML = `Neto del periodo (entraron − salieron): <b>${n > 0 ? '+' : ''}${n}</b> ${n > 0 ? 'lotes más en la plataforma: se está acumulando trabajo.' : n < 0 ? 'lotes menos en la plataforma: sale más de lo que entra.' : 'entra lo mismo que sale.'} ${sem.some((s) => s.parcial) ? '· * semana incompleta dentro del periodo.' : ''}`;
-    // Tabla (vista alternativa y apoyo de accesibilidad)
-    $('flujo-tabla').innerHTML = `<table class="tj-tabla"><thead><tr><th>Semana del</th>${SERIES.map((x) => `<th class="n">${x.nombre}</th>`).join('')}<th class="n">Neto</th></tr></thead><tbody>${sem.map((s) => `<tr><td>${lblSem(s)}</td>${SERIES.map((x) => `<td class="n">${s[x.k]}</td>`).join('')}<td class="n">${s.entraron - s.salieron > 0 ? '+' : ''}${s.entraron - s.salieron}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td>${SERIES.map((x) => `<td class="n">${fl.total[x.k]}</td>`).join('')}<td class="n">${n > 0 ? '+' : ''}${n}</td></tr></tfoot></table>`;
-    $('flujo-chart').hidden = vistaFlujo !== 'grafica';
-    $('flujo-tabla').hidden = vistaFlujo !== 'tabla';
-    document.querySelectorAll('[data-vista]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.vista === vistaFlujo)));
-    if (vistaFlujo !== 'grafica') return;
-    const cont = $('flujo-chart');
-    const W = Math.max(320, cont.clientWidth), H = 260, m = { t: 12, r: 8, b: 26, l: 34 };
+  const signo = (n) => `${n > 0 ? '+' : ''}${n}`;
+
+  function graficaFlujo(cont, sem, top, nombre) {
+    const W = Math.max(280, cont.clientWidth), H = 230, m = { t: 10, r: 6, b: 24, l: 32 };
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const maxV = Math.max(4, ...sem.flatMap((s) => SERIES.map((x) => s[x.k])));
-    const paso = maxV <= 10 ? 2 : maxV <= 25 ? 5 : maxV <= 60 ? 10 : maxV <= 150 ? 25 : 50;
-    const top = Math.ceil(maxV / paso) * paso;
+    const paso = top <= 10 ? 2 : top <= 25 ? 5 : top <= 60 ? 10 : top <= 150 ? 25 : 50;
     const y = (v) => m.t + ih - (v / top) * ih;
     const gw = iw / Math.max(1, sem.length);
-    const gap = 2, bw = Math.max(3, Math.min(22, (gw * 0.72 - gap * 2) / 3));
+    const gap = 2, bw = Math.max(3, Math.min(18, (gw * 0.74 - gap * 2) / 3));
     const ticks = []; for (let v = 0; v <= top; v += paso) ticks.push(v);
-    const r = 4;
-    const barra = (x0, v, c) => { if (!v) return ''; const yy = y(v), h = m.t + ih - yy, rr = Math.min(r, h, bw / 2);
+    const barra = (x0, v, c) => { if (!v) return ''; const yy = y(v), h = m.t + ih - yy, rr = Math.min(4, h, bw / 2);
       return `<path d="M${x0},${m.t + ih} V${yy + rr} Q${x0},${yy} ${x0 + rr},${yy} H${x0 + bw - rr} Q${x0 + bw},${yy} ${x0 + bw},${yy + rr} V${m.t + ih} Z" fill="${c}"></path>`; };
-    const cada = Math.ceil(sem.length / Math.max(1, Math.floor(iw / 46)));
-    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lotes que entraron, quedaron listos y salieron por semana">`;
+    const cada = Math.ceil(sem.length / Math.max(1, Math.floor(iw / 44)));
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(nombre)}: lotes que entraron, quedaron listos y salieron por semana">`;
     svg += `<g class="grid">${ticks.map((t) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"></line>`).join('')}</g>`;
     svg += `<g class="eje">${ticks.map((t) => `<text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join('')}</g>`;
     sem.forEach((s, i) => {
       const gx = m.l + i * gw, x0 = gx + (gw - (bw * 3 + gap * 2)) / 2;
       svg += SERIES.map((x, j) => barra(x0 + j * (bw + gap), s[x.k], x.c)).join('');
-      if (i % cada === 0) svg += `<g class="eje"><text x="${gx + gw / 2}" y="${H - 8}" text-anchor="middle">${lblSem(s)}</text></g>`;
+      if (i % cada === 0) svg += `<g class="eje"><text x="${gx + gw / 2}" y="${H - 7}" text-anchor="middle">${lblSem(s)}</text></g>`;
     });
     svg += `<line class="base" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}"></line>`;
     svg += sem.map((s, i) => `<rect class="hit" data-i="${i}" x="${m.l + i * gw}" y="${m.t}" width="${gw}" height="${ih}"></rect>`).join('');
-    svg += '</svg>';
-    cont.innerHTML = svg;
-    const tip = $('flujo-tip');
+    cont.innerHTML = svg + '</svg>';
+    const tip = $('flujo-tip'), panel = cont.closest('.tj-panel');
     const mostrarTip = (el) => {
       const s = sem[Number(el.dataset.i)];
-      cont.querySelectorAll('.hit').forEach((h) => h.classList.toggle('on', h === el));
-      tip.innerHTML = `<b>Semana del ${dmy(s.semana)}${s.parcial ? ' (incompleta)' : ''}</b>${SERIES.map((x) => `<span><span><i style="background:${x.c}"></i>${x.nombre}</span><b>${s[x.k]}</b></span>`).join('')}<span><span>Neto</span><b>${s.entraron - s.salieron > 0 ? '+' : ''}${s.entraron - s.salieron}</b></span>`;
+      panel.querySelectorAll('.hit.on').forEach((h) => h.classList.remove('on')); el.classList.add('on');
+      tip.innerHTML = `<b>${esc(nombre)} · semana del ${dmy(s.semana)}${s.parcial ? ' (incompleta)' : ''}</b>${SERIES.map((x) => `<span><span><i style="background:${x.c}"></i>${x.nombre}</span><b>${s[x.k]}</b></span>`).join('')}<span><span>Neto</span><b>${signo(s.entraron - s.salieron)}</b></span>`;
       tip.hidden = false;
-      const pr = cont.parentElement.getBoundingClientRect(), br = el.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect(), br = el.getBoundingClientRect();
       let left = br.left - pr.left + br.width / 2 + 12;
       if (left + tip.offsetWidth > pr.width - 8) left = br.left - pr.left + br.width / 2 - tip.offsetWidth - 12;
       tip.style.left = Math.max(8, left) + 'px';
-      tip.style.top = (cont.offsetTop + 10) + 'px';
+      tip.style.top = (cont.getBoundingClientRect().top - pr.top + 6) + 'px';
     };
-    cont.querySelectorAll('.hit').forEach((h) => {
-      h.addEventListener('mouseenter', () => mostrarTip(h));
-      h.addEventListener('click', () => mostrarTip(h));
-    });
+    cont.querySelectorAll('.hit').forEach((h) => { h.addEventListener('mouseenter', () => mostrarTip(h)); h.addEventListener('click', () => mostrarTip(h)); });
     cont.querySelector('svg').addEventListener('mouseleave', () => { tip.hidden = true; cont.querySelectorAll('.hit.on').forEach((h) => h.classList.remove('on')); });
   }
-  // Flujo: Todos / Taller / Venta (independiente del filtro Tipo de arriba)
-  let grupoFlujo = 'todos', ultimoR = null;
-  document.querySelectorAll('[data-fg]').forEach((b) => b.addEventListener('click', () => {
-    grupoFlujo = b.dataset.fg;
-    document.querySelectorAll('[data-fg]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    if (ultimoR) pintarFlujo(grupoFlujo === 'taller' ? ultimoR.flujoTaller : grupoFlujo === 'venta' ? ultimoR.flujoVenta : ultimoR.flujo);
-  }));
+
+  function pintarFlujo(r) {
+    const datos = GRUPOS_FL.map((g) => ({ ...g, fl: r[g.clave], ok: g.incluido() }));
+    const semanas = datos[0].fl.semanas.slice(-14).map((x) => x.semana);
+    const semDe = (fl) => fl.semanas.slice(-14);
+    const top0 = Math.max(4, ...datos.filter((d) => d.ok).flatMap((d) => semDe(d.fl).flatMap((s) => SERIES.map((x) => s[x.k]))));
+    const pasoT = top0 <= 10 ? 2 : top0 <= 25 ? 5 : top0 <= 60 ? 10 : top0 <= 150 ? 25 : 50;
+    const top = Math.ceil(top0 / pasoT) * pasoT; // misma escala en las dos gráficas para poder compararlas
+    $('flujo-leyenda').innerHTML = SERIES.map((x) => `<span><i style="background:${x.c}"></i>${x.nombre}</span>`).join('');
+    // Gráficas
+    $('flujo-graficas').innerHTML = datos.map((d) => {
+      const t = d.fl.total;
+      return `<div class="tj-flujo-col"><h3>${esc(d.nombre)} <small>${esc(d.sub)}${d.ok ? ` · ${t.entraron} entraron · ${t.listos} listos · ${t.salieron} salieron` : ''}</small>${d.ok ? `<span class="neto ${t.neto > 0 ? 'sube' : t.neto < 0 ? 'baja' : ''}">Neto ${signo(t.neto)}</span>` : ''}</h3>
+        ${d.ok ? `<div class="tj-chart" data-g="${d.id}"></div>` : `<div class="vacio">Excluido por el filtro Tipo de arriba</div>`}</div>`;
+    }).join('');
+    // Tabla con columnas por tipo
+    const filasT = semanas.map((w, i) => {
+      const celdas = datos.map((d) => { const s = semDe(d.fl)[i]; return d.ok ? SERIES.map((x, j) => `<td class="n${j === 0 ? ' sep' : ''}">${s[x.k]}</td>`).join('') + `<td class="n">${signo(s.entraron - s.salieron)}</td>` : '<td class="n sep tj-muted" colspan="4">—</td>'; }).join('');
+      return `<tr><td>${lblSem(semDe(datos[0].fl)[i])}</td>${celdas}</tr>`;
+    }).join('');
+    const totT = datos.map((d) => (d.ok ? SERIES.map((x, j) => `<td class="n${j === 0 ? ' sep' : ''}">${d.fl.total[x.k]}</td>`).join('') + `<td class="n">${signo(d.fl.total.neto)}</td>` : '<td class="n sep" colspan="4"></td>')).join('');
+    const corto = { entraron: 'Entraron', listos: 'Listos', salieron: 'Salieron' };
+    $('flujo-tabla').innerHTML = `<table class="tj-tabla"><thead>
+        <tr><th rowspan="2">Semana del</th>${datos.map((d) => `<th class="grp sep" colspan="4">${esc(d.nombre)}</th>`).join('')}</tr>
+        <tr>${datos.map(() => SERIES.map((x, j) => `<th class="n${j === 0 ? ' sep' : ''}">${corto[x.k]}</th>`).join('') + '<th class="n">Neto</th>').join('')}</tr>
+      </thead><tbody>${filasT}</tbody><tfoot><tr><td>Total</td>${totT}</tr></tfoot></table>`;
+    $('flujo-graficas').hidden = vistaFlujo !== 'grafica';
+    $('flujo-tabla').hidden = vistaFlujo !== 'tabla';
+    document.querySelectorAll('[data-vista]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.vista === vistaFlujo)));
+    // Nota
+    const inc = datos.filter((d) => d.ok);
+    const neto = inc.reduce((a, d) => a + d.fl.total.neto, 0);
+    const txt = inc.map((d) => `${d.nombre.toLowerCase()} <b>${signo(d.fl.total.neto)}</b>`).join(' · ');
+    $('flujo-neto').innerHTML = `Neto del periodo (entraron − salieron): ${txt}${inc.length > 1 ? ` · total <b>${signo(neto)}</b>` : ''}. Un neto positivo significa que se está acumulando trabajo en la plataforma. Las dos gráficas usan la misma escala.${semDe(datos[0].fl).some((x) => x.parcial) ? ' · * semana incompleta dentro del periodo.' : ''}`;
+    if (vistaFlujo === 'grafica') document.querySelectorAll('#flujo-graficas .tj-chart').forEach((c) => { const d = datos.find((x) => x.id === c.dataset.g); graficaFlujo(c, semDe(d.fl), top, d.nombre); });
+  }
 
   // ---- Bloque 3 · Tiempos por etapa ----
   function pintarEtapas(et) {
@@ -541,8 +565,8 @@
   }
   const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
 
-  document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => { vistaFlujo = b.dataset.vista; if (ultimoFlujo) pintarFlujo(ultimoFlujo); }));
-  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (ultimoFlujo) pintarFlujo(ultimoFlujo); }, 150); });
+  document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => { vistaFlujo = b.dataset.vista; if (ultimoR) pintarFlujo(ultimoR); }));
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (ultimoR) pintarFlujo(ultimoR); }, 150); });
 
   const cambiar = (p) => { F = { ...F, ...p }; guardar(); pintar(); };
   $('f-periodo').addEventListener('change', (e) => {
