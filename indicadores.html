@@ -84,6 +84,31 @@
   .tj-tip b { font-weight: 600; }
   .tj-tip span { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
   .tj-tip i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+  /* Bloque 3 · Tiempos por etapa (rampa de un solo tono: los tramos van en orden) */
+  .tj { --et-1: #a8c8ee; --et-2: #4f8fdf; --et-3: #1f5aa6; --et-txt-1: #0b2545; --et-txt: #fff; }
+  @media (prefers-color-scheme: dark) { .tj { --et-1: #24466f; --et-2: #3f7fd0; --et-3: #9cc4f2; --et-txt-1: #e8eef7; --et-txt: #0b1a2e; } }
+  .tj-etapas { display: grid; gap: 14px; }
+  .tj-et-fila { display: grid; grid-template-columns: 11rem 1fr 4.5rem; gap: 10px; align-items: center; }
+  .tj-et-fila .nom { font-size: var(--cds-font-size-body); font-weight: 600; }
+  .tj-et-fila .nom small { display: block; font-weight: 400; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-et-bar { display: flex; gap: 2px; height: 26px; }
+  .tj-et-bar span { display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; border-radius: 3px; min-width: 2px; white-space: nowrap; overflow: hidden; font-variant-numeric: tabular-nums; }
+  .tj-et-bar span:first-child { border-radius: 4px 3px 3px 4px; } .tj-et-bar span:last-child { border-radius: 3px 4px 4px 3px; }
+  .tj-et-tot { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tj-et-tot small { display: block; font-weight: 400; font-size: .7rem; color: var(--color-fg-muted); }
+  @media (max-width: 620px) { .tj-et-fila { grid-template-columns: 1fr 4rem; } .tj-et-fila .nom { grid-column: 1 / -1; } }
+  /* Bloque 5 · Antigüedad (mapa de calor de un solo tono) */
+  .tj-calor td.c { text-align: right; font-variant-numeric: tabular-nums; position: relative; }
+  .tj-calor td.c span { display: inline-block; min-width: 2.4rem; padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--color-warn) calc(var(--p, 0) * 55%), transparent); }
+  .tj-calor td.c.cero span { color: var(--color-fg-muted); background: none; }
+  .tj-calor th.n, .tj-calor td.n { text-align: right; }
+  /* Bloque 6 · Calidad */
+  .tj-cal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cds-gap-sm); }
+  @media (max-width: 900px) { .tj-cal-grid { grid-template-columns: 1fr; } }
+  .tj-hbar { display: grid; grid-template-columns: minmax(6rem, 9rem) 1fr 2.5rem; gap: 8px; align-items: center; font-size: var(--cds-font-size-caption); }
+  .tj-hbar .t { height: 12px; border-radius: 0 4px 4px 0; background: var(--color-bad); }
+  .tj-hbar .v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tj-mini-h { margin: 0; font-size: var(--cds-font-size-caption); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-fg-muted); }
   .tj-tabla-wrap { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: auto; }
   .tj-tabla { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
   .tj-tabla th { text-align: left; font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); padding: 8px 12px; border-bottom: 2px solid var(--tj-ink); white-space: nowrap; position: sticky; top: 0; background: var(--color-panel); }
@@ -157,6 +182,9 @@
     <div class="tj-panel">
       <div class="tj-flujo-top">
         <div class="tj-leyenda" id="flujo-leyenda"></div>
+        <div class="tj-seg" role="group" aria-label="Qué lotes" id="flujo-grupo">
+          <button type="button" data-fg="todos" aria-pressed="true">Todos</button><button type="button" data-fg="taller" aria-pressed="false">Taller</button><button type="button" data-fg="venta" aria-pressed="false">Venta</button>
+        </div>
         <div class="tj-seg" role="group" aria-label="Vista">
           <button type="button" data-vista="grafica" aria-pressed="true">Gráfica</button><button type="button" data-vista="tabla" aria-pressed="false">Tabla</button>
         </div>
@@ -165,6 +193,19 @@
       <div class="tj-tabla-wrap" id="flujo-tabla" hidden></div>
       <p class="tj-neto" id="flujo-neto"></p>
       <div class="tj-tip" id="flujo-tip" hidden></div>
+    </div>
+  </section>
+
+  <section class="tj-sec" aria-labelledby="h-etapas">
+    <h2 id="h-etapas">Tiempos por etapa <small>días promedio de cada tramo, lotes que quedaron listos en el periodo</small></h2>
+    <div class="tj-panel">
+      <div class="tj-leyenda">
+        <span><i style="background:var(--et-1)"></i>Ingreso → inicio (asignación, primer registro o envío a proveedor)</span>
+        <span><i style="background:var(--et-2)"></i>Inicio → listo</span>
+        <span><i style="background:var(--et-3)"></i>Listo → salida (solo los que ya salieron)</span>
+      </div>
+      <div class="tj-etapas" id="etapas"></div>
+      <p class="tj-neto" id="etapas-nota"></p>
     </div>
   </section>
 
@@ -184,6 +225,20 @@
         <tbody id="prov-cuerpo"><tr><td colspan="7" class="tj-muted">Cargando…</td></tr></tbody>
         <tfoot id="prov-total"></tfoot>
       </table>
+    </div>
+  </section>
+
+  <section class="tj-sec" aria-labelledby="h-ant">
+    <h2 id="h-ant">Antigüedad de lo abierto <small>foto de hoy · lotes sin cerrar con movimiento en los últimos 60 días, por días desde su ingreso</small></h2>
+    <div class="tj-tabla-wrap"><table class="tj-tabla tj-calor" id="antiguedad"></table></div>
+  </section>
+
+  <section class="tj-sec" aria-labelledby="h-cal">
+    <h2 id="h-cal">Calidad <small>inspecciones de Paul en el periodo</small></h2>
+    <div class="tj-cal-grid">
+      <div class="tj-panel" id="cal-resumen"></div>
+      <div class="tj-panel"><h3 class="tj-mini-h">Reproceso por área</h3><div id="cal-areas"></div></div>
+      <div class="tj-panel"><h3 class="tj-mini-h">Por origen</h3><div id="cal-origen"></div></div>
     </div>
   </section>
 
@@ -360,7 +415,11 @@
       </tr>`).join('') : '<tr><td colspan="7" class="tj-muted">No hubo envíos a proveedor en el periodo.</td></tr>';
     $('prov-total').innerHTML = PR.filas.length ? `<tr><td>Total</td><td class="n">${PR.total.enviados}</td><td class="n">${PR.total.regresaron}</td><td class="n">${d1(PR.total.diasProm)}</td><td class="n">${PR.total.pendientes}</td><td></td><td></td></tr>` : '';
 
-    pintarFlujo(r.flujo);
+    ultimoR = r;
+    pintarFlujo(grupoFlujo === 'taller' ? r.flujoTaller : grupoFlujo === 'venta' ? r.flujoVenta : r.flujo);
+    pintarEtapas(r.etapas);
+    pintarAntiguedad(r.antiguedad);
+    pintarCalidad(r.calidad);
 
     const malos = [semPk, semCi, semSa, semCa].filter((x) => x === 'mal').length;
     $('resumen').innerHTML = `Periodo ${dmy(desde)} – ${dmy(hasta)}: picking a tiempo <b>${pct(A.picking.valor)}</b>, ciclo <b>${d1(A.ciclo.valor)}</b>, listo → salida <b>${d1(A.salida.valor)}</b>, calidad a la primera <b>${pct(A.calidad.valor)}</b>. ${malos ? `<b>${malos} de 4</b> indicadores lejos de la meta.` : 'Indicadores en meta o cerca.'}`;
@@ -430,6 +489,56 @@
     });
     cont.querySelector('svg').addEventListener('mouseleave', () => { tip.hidden = true; cont.querySelectorAll('.hit.on').forEach((h) => h.classList.remove('on')); });
   }
+  // Flujo: Todos / Taller / Venta (independiente del filtro Tipo de arriba)
+  let grupoFlujo = 'todos', ultimoR = null;
+  document.querySelectorAll('[data-fg]').forEach((b) => b.addEventListener('click', () => {
+    grupoFlujo = b.dataset.fg;
+    document.querySelectorAll('[data-fg]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (ultimoR) pintarFlujo(grupoFlujo === 'taller' ? ultimoR.flujoTaller : grupoFlujo === 'venta' ? ultimoR.flujoVenta : ultimoR.flujo);
+  }));
+
+  // ---- Bloque 3 · Tiempos por etapa ----
+  function pintarEtapas(et) {
+    if (!et.length) { $('etapas').innerHTML = '<p class="tj-muted">Ningún lote quedó listo en el periodo.</p>'; $('etapas-nota').textContent = ''; return; }
+    const tot = (g) => (g.ingresoInicio || 0) + (g.inicioListo || 0) + (g.listoSalida || 0);
+    const max = Math.max(1, ...et.map(tot));
+    const seg = (v, c, txt, nombre) => (v == null ? '' : `<span style="flex:0 0 ${Math.max(0.6, v / max * 100)}%;background:var(${c});color:var(${txt})" title="${nombre}: ${nf1.format(v)} días">${v / max * 100 > 7 ? nf1.format(v) : ''}</span>`);
+    $('etapas').innerHTML = et.map((g) => `<div class="tj-et-fila">
+        <div class="nom">${esc(g.nombre)}<small>${g.n} lotes listos${g.nSalida ? ` · ${g.nSalida} ya salieron` : ''}</small></div>
+        <div class="tj-et-bar" role="img" aria-label="${esc(g.nombre)}: ingreso a inicio ${g.ingresoInicio == null ? 'sin dato' : nf1.format(g.ingresoInicio) + ' días'}, inicio a listo ${g.inicioListo == null ? 'sin dato' : nf1.format(g.inicioListo) + ' días'}, listo a salida ${g.listoSalida == null ? 'sin dato' : nf1.format(g.listoSalida) + ' días'}">
+          ${seg(g.ingresoInicio, '--et-1', '--et-txt-1', 'Ingreso → inicio')}${seg(g.inicioListo, '--et-2', '--et-txt', 'Inicio → listo')}${seg(g.listoSalida, '--et-3', '--et-txt', 'Listo → salida')}
+        </div>
+        <div class="tj-et-tot">${nf1.format(tot(g))} d<small>total</small></div>
+      </div>`).join('');
+    const peor = et.slice().sort((a, b) => tot(b) - tot(a))[0];
+    const tramos = [['ingreso → inicio', peor.ingresoInicio], ['inicio → listo', peor.inicioListo], ['listo → salida', peor.listoSalida]].filter((x) => x[1] != null).sort((a, b) => b[1] - a[1]);
+    $('etapas-nota').innerHTML = `El recorrido más largo es <b>${esc(peor.nombre)}</b> (${nf1.format(tot(peor))} días); su tramo más lento es <b>${tramos[0][0]}</b> (${nf1.format(tramos[0][1])} días). Los promedios de cada tramo se calculan con los lotes que tienen ese dato.`;
+  }
+
+  // ---- Bloque 5 · Antigüedad de lo abierto ----
+  function pintarAntiguedad(an) {
+    if (!an.filas.length) { $('antiguedad').innerHTML = '<tbody><tr><td class="tj-muted">No hay lotes abiertos.</td></tr></tbody>'; return; }
+    const max = Math.max(1, ...an.filas.flatMap((f) => an.rangos.map((r) => f[r.id])));
+    const celda = (v) => `<td class="c${v ? '' : ' cero'}"><span style="--p:${v / max}">${v}</span></td>`;
+    $('antiguedad').innerHTML = `<thead><tr><th>Estado</th>${an.rangos.map((r) => `<th class="n">${r.nombre}</th>`).join('')}<th class="n">Total</th></tr></thead>
+      <tbody>${an.filas.map((f) => `<tr><td>${esc(f.estado)}</td>${an.rangos.map((r) => celda(f[r.id])).join('')}<td class="n"><b>${f.total}</b></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total</td>${an.rangos.map((r) => `<td class="n">${an.total[r.id]}</td>`).join('')}<td class="n">${an.total.total}</td></tr></tfoot>`;
+  }
+
+  // ---- Bloque 6 · Calidad ----
+  function pintarCalidad(c) {
+    if (!c.total) { $('cal-resumen').innerHTML = '<p class="tj-muted">Sin inspecciones en el periodo.</p>'; $('cal-areas').innerHTML = ''; $('cal-origen').innerHTML = ''; return; }
+    const pA = c.aprobados / c.total;
+    $('cal-resumen').innerHTML = `<h3 class="tj-mini-h">Resultado de las inspecciones</h3>
+      <div class="tj-val"><b>${pct(pA)}</b><span class="tj-meta">aprobadas</span></div>
+      <div class="tj-bar"><span style="width:${pA * 100}%;background:var(--color-ok)"></span><span style="width:${(1 - pA) * 100}%;background:var(--color-bad)"></span></div>
+      <p class="tj-neto"><b>${c.aprobados}</b> aprobadas · <b>${c.reprocesos}</b> reproceso · ${c.total} inspecciones de ${c.lotes} lotes</p>`;
+    const maxA = Math.max(1, ...c.porArea.map((a) => a.n));
+    $('cal-areas').innerHTML = c.porArea.length ? c.porArea.map((a) => `<div class="tj-hbar"><span>${esc(titulo(a.area))}</span><span class="t" style="width:${a.n / maxA * 100}%"></span><span class="v">${a.n}</span></div>`).join('') : '<p class="tj-muted">Ningún reproceso en el periodo.</p>';
+    $('cal-origen').innerHTML = `<table class="tj-tabla"><thead><tr><th>Origen</th><th class="n">Inspecciones</th><th class="n">Aprobadas</th></tr></thead><tbody>${c.porOrigen.map((o) => `<tr><td>${esc(titulo(o.origen))}</td><td class="n">${o.total}</td><td class="n">${pct(o.aprobados / o.total)}</td></tr>`).join('')}</tbody></table>`;
+  }
+  const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
+
   document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => { vistaFlujo = b.dataset.vista; if (ultimoFlujo) pintarFlujo(ultimoFlujo); }));
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (ultimoFlujo) pintarFlujo(ultimoFlujo); }, 150); });
 

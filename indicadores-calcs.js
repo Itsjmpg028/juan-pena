@@ -117,6 +117,64 @@
     return { semanas, total: { ...tot, neto: tot.entraron - tot.salieron } };
   }
 
+  const esTaller = (l) => /^Taller|^Importado/.test(l.tipo || '');
+
+  // Bloque 3 · Tiempos por etapa: lotes que quedaron listos en el periodo, días promedio de cada tramo por tipo.
+  //   Ingreso → inicio (asignación, primer registro o envío a proveedor) · inicio → listo · listo → salida (si ya salió).
+  function etapas(lotes, desde, hasta) {
+    const GRUPOS = [
+      { id: 'tp', nombre: 'Taller plataforma', f: (l) => l.tipo === 'Taller plataforma' || l.tipo === 'Taller' },
+      { id: 'tv', nombre: 'Taller proveedor', f: (l) => l.tipo === 'Taller proveedor' },
+      { id: 've', nombre: 'Recuperación / venta', f: (l) => l.tipo === 'Venta' },
+    ];
+    const listos = lotes.filter((l) => l.listo && enRango(l.listo.fecha, desde, hasta));
+    const tramos = (ls) => {
+      const t1 = [], t2 = [], t3 = [];
+      for (const l of ls) {
+        const ini = l.inicio || l.envio_prov || null;
+        const a = dias(l.entrada, ini); if (a != null && a >= 0) t1.push(a);
+        const b = dias(ini || l.entrada, l.listo.fecha); if (b != null && b >= 0) t2.push(b);
+        if (l.traslado && l.d_listo_salida != null) t3.push(l.d_listo_salida);
+      }
+      return { n: ls.length, ingresoInicio: promedio(t1), inicioListo: promedio(t2), listoSalida: promedio(t3), nSalida: t3.length };
+    };
+    return GRUPOS.map((g) => ({ id: g.id, nombre: g.nombre, ...tramos(listos.filter(g.f)) })).filter((g) => g.n);
+  }
+
+  // Bloque 5 · Antigüedad de lo abierto (foto de hoy): estado × rango de días desde el ingreso.
+  const RANGOS = [{ id: 'r1', nombre: '0–7 d', max: 7 }, { id: 'r2', nombre: '8–15 d', max: 15 }, { id: 'r3', nombre: '16–30 d', max: 30 }, { id: 'r4', nombre: '> 30 d', max: Infinity }];
+  function antiguedad(lotes, hoy) {
+    const desdeAct = sumar(hoy, -ACTIVIDAD_DIAS);
+    const abiertos = lotes.filter((l) => !CERRADOS.includes(l.estado) && l.ultimo_mov && l.ultimo_mov >= desdeAct);
+    const filas = new Map();
+    const tot = { total: 0 }; RANGOS.forEach((r) => { tot[r.id] = 0; });
+    for (const l of abiertos) {
+      const e = dias(l.entrada || l.inicio, hoy);
+      const r = RANGOS.find((x) => (e ?? 0) <= x.max);
+      if (!filas.has(l.estado)) { const f = { estado: l.estado, total: 0 }; RANGOS.forEach((x) => { f[x.id] = 0; }); filas.set(l.estado, f); }
+      const f = filas.get(l.estado); f[r.id] += 1; f.total += 1; tot[r.id] += 1; tot.total += 1;
+    }
+    return { rangos: RANGOS, filas: [...filas.values()].sort((a, b) => b.total - a.total), total: tot };
+  }
+
+  // Bloque 6 · Calidad: todas las inspecciones del periodo.
+  function calidad(lotes, desde, hasta) {
+    const insp = [];
+    for (const l of lotes) for (const i of l.inspecciones || []) if (enRango(i.fecha, desde, hasta)) insp.push({ ...i, lote: l.lote, tipo: l.tipo });
+    const aprob = insp.filter((i) => i.resultado === 'APROBADO').length;
+    const rep = insp.filter((i) => i.resultado === 'REPROCESO');
+    const porArea = new Map();
+    for (const i of rep) { const a = (i.reproceso || 'Sin área').trim() || 'Sin área'; porArea.set(a, (porArea.get(a) || 0) + 1); }
+    const porOrigen = new Map();
+    for (const i of insp) { const o = (i.origen || 'Sin origen').trim() || 'Sin origen'; const x = porOrigen.get(o) || { origen: o, total: 0, aprobados: 0 }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; porOrigen.set(o, x); }
+    const lotesInsp = new Set(insp.map((i) => i.lote)).size;
+    return {
+      total: insp.length, aprobados: aprob, reprocesos: rep.length, lotes: lotesInsp,
+      porArea: [...porArea.entries()].map(([area, n]) => ({ area, n })).sort((a, b) => b.n - a.n),
+      porOrigen: [...porOrigen.values()].sort((a, b) => b.total - a.total),
+    };
+  }
+
   function calcular(lotes, desde, hasta, hoy) {
     const largo = dias(desde, hasta) + 1;
     const antHasta = sumar(desde, -1), antDesde = sumar(desde, -largo);
@@ -127,6 +185,11 @@
       envejecidos: envejecidos(lotes, hoy),
       proveedores: proveedores(lotes, desde, hasta, hoy),
       flujo: flujo(lotes, desde, hasta),
+      flujoTaller: flujo(lotes.filter(esTaller), desde, hasta),
+      flujoVenta: flujo(lotes.filter((l) => l.tipo === 'Venta'), desde, hasta),
+      etapas: etapas(lotes, desde, hasta),
+      antiguedad: antiguedad(lotes, hoy),
+      calidad: calidad(lotes, desde, hasta),
     };
   }
 
