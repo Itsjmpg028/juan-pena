@@ -23,7 +23,7 @@ Archivos: `index.html` (página), `calcs.js` (conversión de datos y cálculos),
 
 Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabilización) · Asignación · Ebanistería · Acabados · Costura · Tapicería · Empaque · Inspección · Estado · días Ingreso → asignación, Asignación → listo y Total.
 
-- Lee las hojas *Registro de PrOD*, *Asignación*, *Inspección Calidad* e *Ingresos* publicadas como CSV. *Ingresos* es una copia automática (fórmula FILTER en A1) de 4 columnas de *Inventario* — Lote, Fe.contabilización, Centro, Texto breve de material —, para no publicar clientes ni valores.
+- Lee las hojas *Registro de PrOD*, *Asignación*, *Inspección Calidad* e *Ingresos* publicadas como CSV. *Ingresos* es una copia automática (fórmula FILTER en A1, solo entradas desde el 01/05/2026 por rendimiento; desde 04/11) de columnas de *Inventario* — Lote, Fe.contabilización, Centro, Texto breve de material —, para no publicar clientes ni valores.
 - Lotes incluidos: todo lote asignado y todo lote con registros de producción (6–8 dígitos; 101/102 y valores raros no se siguen).
 - Tipo por centro: 2000, 2001, 2006 = Taller; 2500, 2503, 2506, 2508 = Venta. El ORIGEN que elige el inspector se muestra aparte.
 - Áreas: Acabados incluye POLICHE; Empaque = TIPO DE SERVICIO "EMPAQUE" (lo registre quien lo registre).
