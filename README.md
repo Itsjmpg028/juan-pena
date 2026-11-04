@@ -67,5 +67,5 @@ Pestaña del panel de administrador. Usa los mismos lotes de seguimiento-calcs.j
 - **Flujo semanal**: barras por semana (lunes) de lotes en seguimiento que entraron (fecha de ingreso), quedaron listos y salieron (601/939), con tooltip, vista de tabla, botones Todos / Taller / Venta y neto del periodo (entraron − salieron).
 - **Tiempos por etapa**: por tipo (Taller plataforma, Taller proveedor, Venta), días promedio de ingreso → inicio (asignación, primer registro o envío a proveedor), inicio → listo y listo → salida, de los lotes que quedaron listos en el periodo.
 - **Antigüedad de lo abierto** (foto de hoy): matriz estado × días desde el ingreso (0–7, 8–15, 16–30, > 30) de los lotes sin cerrar con movimiento en 60 días.
-- **Calidad**: inspecciones del periodo, % aprobadas, reproceso por área y resultados por origen (Taller / Proveedor).
+- **Calidad**: inspecciones del periodo (todos los inspectores: Paul Mora y, desde 04/11, Efren Palencia), % aprobadas, reproceso por área, resultados por origen y por inspector.
 - **Proveedores**: por proveedor, lotes enviados (161) en el periodo, regresaron, días promedio en proveedor, siguen allá, mayor espera y % de regreso antes del picking.

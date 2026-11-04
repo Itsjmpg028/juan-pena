@@ -103,7 +103,7 @@
   .tj-calor td.c.cero span { color: var(--color-fg-muted); background: none; }
   .tj-calor th.n, .tj-calor td.n { text-align: right; }
   /* Bloque 6 · Calidad */
-  .tj-cal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cds-gap-sm); }
+  .tj-cal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cds-gap-sm); }
   @media (max-width: 900px) { .tj-cal-grid { grid-template-columns: 1fr; } }
   .tj-hbar { display: grid; grid-template-columns: minmax(6rem, 9rem) 1fr 2.5rem; gap: 8px; align-items: center; font-size: var(--cds-font-size-caption); }
   .tj-hbar .t { height: 12px; border-radius: 0 4px 4px 0; background: var(--color-bad); }
@@ -234,11 +234,12 @@
   </section>
 
   <section class="tj-sec" aria-labelledby="h-cal">
-    <h2 id="h-cal">Calidad <small>inspecciones de Paul en el periodo</small></h2>
+    <h2 id="h-cal">Calidad <small>inspecciones de calidad en el periodo (todos los inspectores)</small></h2>
     <div class="tj-cal-grid">
       <div class="tj-panel" id="cal-resumen"></div>
       <div class="tj-panel"><h3 class="tj-mini-h">Reproceso por área</h3><div id="cal-areas"></div></div>
       <div class="tj-panel"><h3 class="tj-mini-h">Por origen</h3><div id="cal-origen"></div></div>
+      <div class="tj-panel"><h3 class="tj-mini-h">Por inspector</h3><div id="cal-inspector"></div></div>
     </div>
   </section>
 
@@ -527,7 +528,7 @@
 
   // ---- Bloque 6 · Calidad ----
   function pintarCalidad(c) {
-    if (!c.total) { $('cal-resumen').innerHTML = '<p class="tj-muted">Sin inspecciones en el periodo.</p>'; $('cal-areas').innerHTML = ''; $('cal-origen').innerHTML = ''; return; }
+    if (!c.total) { $('cal-resumen').innerHTML = '<p class="tj-muted">Sin inspecciones en el periodo.</p>'; $('cal-areas').innerHTML = ''; $('cal-origen').innerHTML = ''; $('cal-inspector').innerHTML = ''; return; }
     const pA = c.aprobados / c.total;
     $('cal-resumen').innerHTML = `<h3 class="tj-mini-h">Resultado de las inspecciones</h3>
       <div class="tj-val"><b>${pct(pA)}</b><span class="tj-meta">aprobadas</span></div>
@@ -535,6 +536,7 @@
       <p class="tj-neto"><b>${c.aprobados}</b> aprobadas · <b>${c.reprocesos}</b> reproceso · ${c.total} inspecciones de ${c.lotes} lotes</p>`;
     const maxA = Math.max(1, ...c.porArea.map((a) => a.n));
     $('cal-areas').innerHTML = c.porArea.length ? c.porArea.map((a) => `<div class="tj-hbar"><span>${esc(titulo(a.area))}</span><span class="t" style="width:${a.n / maxA * 100}%"></span><span class="v">${a.n}</span></div>`).join('') : '<p class="tj-muted">Ningún reproceso en el periodo.</p>';
+    $('cal-inspector').innerHTML = `<table class="tj-tabla"><thead><tr><th>Inspector</th><th class="n">Inspecciones</th><th class="n">Aprobadas</th><th class="n">Reproceso</th></tr></thead><tbody>${c.porInspector.map((x) => `<tr><td>${esc(S.nombreCorto(x.inspector))}</td><td class="n">${x.total}</td><td class="n">${pct(x.aprobados / x.total)}</td><td class="n">${x.reprocesos}</td></tr>`).join('')}</tbody></table>`;
     $('cal-origen').innerHTML = `<table class="tj-tabla"><thead><tr><th>Origen</th><th class="n">Inspecciones</th><th class="n">Aprobadas</th></tr></thead><tbody>${c.porOrigen.map((o) => `<tr><td>${esc(titulo(o.origen))}</td><td class="n">${o.total}</td><td class="n">${pct(o.aprobados / o.total)}</td></tr>`).join('')}</tbody></table>`;
   }
   const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());

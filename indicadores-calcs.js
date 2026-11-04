@@ -167,11 +167,14 @@
     for (const i of rep) { const a = (i.reproceso || 'Sin área').trim() || 'Sin área'; porArea.set(a, (porArea.get(a) || 0) + 1); }
     const porOrigen = new Map();
     for (const i of insp) { const o = (i.origen || 'Sin origen').trim() || 'Sin origen'; const x = porOrigen.get(o) || { origen: o, total: 0, aprobados: 0 }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; porOrigen.set(o, x); }
+    const porInsp = new Map();
+    for (const i of insp) { const n = (i.inspector || 'Sin inspector').trim() || 'Sin inspector'; const x = porInsp.get(n) || { inspector: n, total: 0, aprobados: 0, reprocesos: 0, lotes: new Set() }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; else if (i.resultado === 'REPROCESO') x.reprocesos += 1; x.lotes.add(i.lote); porInsp.set(n, x); }
     const lotesInsp = new Set(insp.map((i) => i.lote)).size;
     return {
       total: insp.length, aprobados: aprob, reprocesos: rep.length, lotes: lotesInsp,
       porArea: [...porArea.entries()].map(([area, n]) => ({ area, n })).sort((a, b) => b.n - a.n),
       porOrigen: [...porOrigen.values()].sort((a, b) => b.total - a.total),
+      porInspector: [...porInsp.values()].map((x) => ({ ...x, lotes: x.lotes.size })).sort((a, b) => b.total - a.total),
     };
   }
 
