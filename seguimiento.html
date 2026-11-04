@@ -539,10 +539,11 @@
     if (l.manual) return `<div class="tj-c verde" title="${esc(`${l.manual.motivo}${l.manual.quien ? ' · ' + l.manual.quien : ''} · ${dmy(l.manual.fecha)}\n(hoja Cierres manuales, sin inspección de calidad)`)}"><b>Listo (manual)</b><small>${dm(l.manual.fecha)}</small></div>`;
     if (l.empacado_listo) return `<div class="tj-c verde" title="${esc(`Listo por empaque registrado el ${dmy(l.empacado_listo)}. Aún sin inspección aprobada de calidad.`)}"><b>Listo (empacado)</b><small>${dm(l.empacado_listo)}</small></div>`;
     if (!i) return '<div class="tj-c pend">Pendiente</div>';
-    const orig = i.origen ? `<span class="tj-orig">${esc(i.origen)}</span>` : '';
+    // El origen (TALLER/PROVEEDOR) va en la línea de abajo para que no se recorte con "…".
+    const orig = i.origen ? ` · ${esc(titulo(i.origen))}` : '';
     const tip = `${titulo(i.inspector)} · ${dmy(i.fecha)}${i.reproceso ? '\nReprocesar: ' + i.reproceso : ''}${i.obs ? '\n' + i.obs : ''}${l.inspecciones.length > 1 ? `\n${l.inspecciones.length} inspecciones` : ''}`;
-    if (i.resultado === 'APROBADO') return `<div class="tj-c verde" title="${esc(tip)}"><b>Aprobado${orig}</b><small>${esc(corto(i.inspector))} · ${dm(i.fecha)}</small></div>`;
-    return `<div class="tj-c reproceso" title="${esc(tip)}"><b>Reproceso${orig}</b><small>${esc(titulo(i.reproceso || ''))} · ${dm(i.fecha)}</small></div>`;
+    if (i.resultado === 'APROBADO') return `<div class="tj-c verde" title="${esc(tip)}"><b>Aprobado</b><small>${esc(corto(i.inspector))} · ${dm(i.fecha)}${orig}</small></div>`;
+    return `<div class="tj-c reproceso" title="${esc(tip)}"><b>Reproceso</b><small>${esc(titulo(i.reproceso || ''))} · ${dm(i.fecha)}${orig}</small></div>`;
   }
 
   // Columna Picking: vencido, vence hoy o próximo a vencer (si el lote no está listo); si no, la fecha y cómo quedó listo.
