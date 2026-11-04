@@ -75,6 +75,7 @@
   .tj-flujo-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
   @media (max-width: 860px) { .tj-flujo-dos { grid-template-columns: 1fr; } }
   .tj-flujo-dos[hidden] { display: none; }
+  .tj-nowrap { white-space: nowrap; }
   .tj-flujo-col { display: grid; gap: 4px; min-width: 0; }
   .tj-flujo-col h3 { margin: 0; font-size: var(--cds-font-size-body); font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
   .tj-flujo-col h3 small { font-size: var(--cds-font-size-caption); font-weight: 400; color: var(--color-fg-muted); }
@@ -447,6 +448,9 @@
   let vistaFlujo = 'grafica', ultimoR = null;
   const lblSem = (s) => `${dm(s.semana)}${s.parcial ? '*' : ''}`;
   const signo = (n) => `${n > 0 ? '+' : ''}${n}`;
+  const dmyc = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`;
+  const finSem = (iso) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + 6); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const rangoSem = (s) => `${dmyc(s.semana)} - ${dmyc(finSem(s.semana))}${s.parcial ? '*' : ''}`;
 
   function graficaFlujo(cont, sem, top, nombre) {
     const W = Math.max(280, cont.clientWidth), H = 230, m = { t: 10, r: 6, b: 24, l: 32 };
@@ -474,7 +478,7 @@
     const mostrarTip = (el) => {
       const s = sem[Number(el.dataset.i)];
       panel.querySelectorAll('.hit.on').forEach((h) => h.classList.remove('on')); el.classList.add('on');
-      tip.innerHTML = `<b>${esc(nombre)} · semana del ${dmy(s.semana)}${s.parcial ? ' (incompleta)' : ''}</b>${SERIES.map((x) => `<span><span><i style="background:${x.c}"></i>${x.nombre}</span><b>${s[x.k]}</b></span>`).join('')}<span><span>Neto</span><b>${signo(s.entraron - s.salieron)}</b></span>`;
+      tip.innerHTML = `<b>${esc(nombre)} · ${dmyc(s.semana)} - ${dmyc(finSem(s.semana))}${s.parcial ? ' (incompleta)' : ''}</b>${SERIES.map((x) => `<span><span><i style="background:${x.c}"></i>${x.nombre}</span><b>${s[x.k]}</b></span>`).join('')}<span><span>Neto</span><b>${signo(s.entraron - s.salieron)}</b></span>`;
       tip.hidden = false;
       const pr = panel.getBoundingClientRect(), br = el.getBoundingClientRect();
       let left = br.left - pr.left + br.width / 2 + 12;
@@ -503,12 +507,12 @@
     // Tabla con columnas por tipo
     const filasT = semanas.map((w, i) => {
       const celdas = datos.map((d) => { const s = semDe(d.fl)[i]; return d.ok ? SERIES.map((x, j) => `<td class="n${j === 0 ? ' sep' : ''}">${s[x.k]}</td>`).join('') + `<td class="n">${signo(s.entraron - s.salieron)}</td>` : '<td class="n sep tj-muted" colspan="4">—</td>'; }).join('');
-      return `<tr><td>${lblSem(semDe(datos[0].fl)[i])}</td>${celdas}</tr>`;
+      return `<tr><td class="tj-nowrap">${rangoSem(semDe(datos[0].fl)[i])}</td>${celdas}</tr>`;
     }).join('');
     const totT = datos.map((d) => (d.ok ? SERIES.map((x, j) => `<td class="n${j === 0 ? ' sep' : ''}">${d.fl.total[x.k]}</td>`).join('') + `<td class="n">${signo(d.fl.total.neto)}</td>` : '<td class="n sep" colspan="4"></td>')).join('');
     const corto = { entraron: 'Entraron', listos: 'Listos', salieron: 'Salieron' };
     $('flujo-tabla').innerHTML = `<table class="tj-tabla"><thead>
-        <tr><th rowspan="2">Semana del</th>${datos.map((d) => `<th class="grp sep" colspan="4">${esc(d.nombre)}</th>`).join('')}</tr>
+        <tr><th rowspan="2">Semana</th>${datos.map((d) => `<th class="grp sep" colspan="4">${esc(d.nombre)}</th>`).join('')}</tr>
         <tr>${datos.map(() => SERIES.map((x, j) => `<th class="n${j === 0 ? ' sep' : ''}">${corto[x.k]}</th>`).join('') + '<th class="n">Neto</th>').join('')}</tr>
       </thead><tbody>${filasT}</tbody><tfoot><tr><td>Total</td>${totT}</tr></tfoot></table>`;
     $('flujo-graficas').hidden = vistaFlujo !== 'grafica';
