@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Indicadores del taller</title>
+<meta name="description" content="Indicadores de picking, tiempos, calidad y proveedores del taller de reacondicionamiento (vista de administrador).">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1F2937">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="tokens.css?v=7">
+<style>
+  .tj { --tj-crimson: #D2132C; --tj-ink: #1F2937; display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .tj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
+  .tj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
+  .tj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+  .tj-eyebrow b { color: #fff; font-weight: 700; letter-spacing: .14em; }
+  .tj-eyebrow i { width: 8px; height: 8px; background: var(--tj-crimson); border-radius: 2px; display: inline-block; }
+  .tj-hero h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; color: #fff; }
+  .tj-takeaway { margin: 0; color: rgba(255,255,255,.78); max-width: 80ch; }
+  .tj-takeaway b { color: #fff; font-weight: 600; }
+
+  .tj-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); align-items: end; }
+  .tj-field { display: grid; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-width: 0; }
+  .tj-field select, .tj-field input { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 10px; max-width: 100%; }
+  .tj-fechas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tj-fechas input[hidden] { display: none; }
+  .tj :is(select, button, input):focus-visible { outline: 2px solid var(--tj-crimson); outline-offset: 1px; }
+  .tj-rango { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); align-self: center; }
+
+  .tj-sec { display: grid; gap: var(--cds-gap-sm); }
+  .tj-sec > h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: 600; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tj-sec > h2 small { font-size: var(--cds-font-size-caption); font-weight: 400; color: var(--color-fg-muted); }
+
+  .tj-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--cds-gap-sm); }
+  @media (max-width: 1000px) { .tj-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 620px) { .tj-cards { grid-template-columns: 1fr; } }
+  .tj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: 6px; align-content: start; position: relative; overflow: hidden; }
+  .tj-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--s, var(--color-border-line)); }
+  .tj-card[data-s="ok"] { --s: var(--color-ok); } .tj-card[data-s="cerca"] { --s: var(--color-warn); } .tj-card[data-s="mal"] { --s: var(--color-bad); }
+  .tj-card h3 { margin: 0; font-size: var(--cds-font-size-caption); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-fg-muted); display: flex; justify-content: space-between; gap: 8px; }
+  .tj-val { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tj-val b { font-size: 2rem; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .tj-meta { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); white-space: nowrap; }
+  .tj-meta i { width: 9px; height: 9px; border-radius: 50%; background: var(--s, var(--color-border-line)); display: inline-block; }
+  .tj-card p { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-card p b { color: var(--color-fg); font-weight: 600; }
+  .tj-delta { font-size: var(--cds-font-size-caption); font-weight: 600; white-space: nowrap; }
+  .tj-delta.mejor { color: var(--color-ok); } .tj-delta.peor { color: var(--color-bad); } .tj-delta.igual { color: var(--color-fg-muted); }
+  .tj-mini { display: flex; align-items: end; gap: 3px; height: 34px; }
+  .tj-mini span { flex: 1; min-width: 6px; background: color-mix(in srgb, var(--color-fg) 55%, var(--color-panel)); border-radius: 2px 2px 0 0; position: relative; }
+  .tj-mini span:last-child { background: var(--tj-crimson); }
+  .tj-mini-lbl { display: flex; justify-content: space-between; font-size: .68rem; color: var(--color-fg-muted); }
+  .tj-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--color-fg) 8%, var(--color-panel)); }
+  .tj-bar span { display: block; height: 100%; }
+
+  .tj-tabla-wrap { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: auto; }
+  .tj-tabla { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+  .tj-tabla th { text-align: left; font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); padding: 8px 12px; border-bottom: 2px solid var(--tj-ink); white-space: nowrap; position: sticky; top: 0; background: var(--color-panel); }
+  @media (prefers-color-scheme: dark) { .tj-tabla th { border-bottom-color: var(--color-fg-muted); } }
+  .tj-tabla td { padding: 8px 12px; border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .tj-tabla td.n, .tj-tabla th.n { text-align: right; }
+  .tj-tabla tbody tr:hover td { background: var(--color-bg); }
+  .tj-tabla tfoot td { font-weight: 700; border-top: 2px solid var(--color-border-line); border-bottom: 0; }
+  .tj-tabla .prov { white-space: normal; min-width: 14rem; font-weight: 600; }
+  .tj-tabla .sindato { color: var(--color-fg-muted); font-style: italic; font-weight: 500; }
+  .tj-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); font-weight: 700; }
+  .tj-tag.ok { color: var(--color-ok); background: color-mix(in srgb, var(--color-ok) 14%, var(--color-panel)); }
+  .tj-tag.cerca { color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 16%, var(--color-panel)); }
+  .tj-tag.mal { color: var(--color-bad); background: color-mix(in srgb, var(--color-bad) 13%, var(--color-panel)); }
+  .tj-muted { color: var(--color-fg-muted); }
+  .tj-foot { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-err { border: 1px solid var(--color-bad); color: var(--color-bad); border-radius: var(--cds-radius); padding: 10px 14px; font-size: var(--cds-font-size-caption); background: color-mix(in srgb, var(--color-bad) 10%, var(--color-panel)); }
+  .tj-err:empty { display: none; }
+  .tj-notas { margin: 0; padding-left: 18px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); display: grid; gap: 3px; }
+</style>
+</head>
+<body>
+<main id="dash-root">
+<div class="tj">
+  <header class="tj-hero">
+    <div class="tj-eyebrow"><i></i><b>Jamar</b><span>Plataforma Galapa · vista de administrador</span></div>
+    <h1>Indicadores del taller</h1>
+    <p class="tj-takeaway" id="resumen">Cargando datos del libro APP JAMAR…</p>
+    <div class="tj-updated"><span id="tj-actualizado">Cargando…</span><button type="button" id="tj-refrescar">Actualizar ahora</button></div>
+  </header>
+
+  <div class="tj-err" id="errores" role="alert"></div>
+
+  <div class="tj-filters">
+    <div class="tj-field">Periodo
+      <div class="tj-fechas">
+        <select id="f-periodo" aria-label="Periodo">
+          <option value="30">Últimos 30 días</option>
+          <option value="mes">Mes actual</option>
+          <option value="mesant">Mes anterior</option>
+          <option value="60">Últimos 60 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="rango">Rango personalizado…</option>
+        </select>
+        <input type="date" id="f-desde" aria-label="Desde" hidden>
+        <input type="date" id="f-hasta" aria-label="Hasta" hidden>
+      </div>
+    </div>
+    <label class="tj-field" for="f-tipo">Tipo
+      <select id="f-tipo">
+        <option value="Todos">Todos</option>
+        <option value="TallerTodos">Taller (todos)</option>
+        <option value="Taller plataforma">Taller plataforma</option>
+        <option value="Taller proveedor">Taller proveedor</option>
+        <option value="Venta">Recuperación / venta</option>
+      </select>
+    </label>
+    <label class="tj-field" for="f-proveedor">Proveedor
+      <select id="f-proveedor"><option value="">Todos</option></select>
+    </label>
+    <span class="tj-rango" id="rango"></span>
+  </div>
+
+  <section class="tj-sec" aria-labelledby="h-resumen">
+    <h2 id="h-resumen">Resumen <small id="h-resumen-sub"></small></h2>
+    <div class="tj-cards" id="cards"></div>
+  </section>
+
+  <section class="tj-sec" aria-labelledby="h-prov">
+    <h2 id="h-prov">Proveedores <small>lotes enviados a proveedor (161) en el periodo</small></h2>
+    <div class="tj-tabla-wrap">
+      <table class="tj-tabla">
+        <thead><tr>
+          <th>Proveedor</th>
+          <th class="n">Enviados</th>
+          <th class="n">Regresaron</th>
+          <th class="n" title="Días promedio entre el envío (161) y el regreso (101, inspección o trabajo del taller), solo de los que ya regresaron">Días prom. en proveedor</th>
+          <th class="n">Siguen allá</th>
+          <th class="n" title="El más antiguo de los que siguen en el proveedor">Mayor espera</th>
+          <th class="n" title="De los lotes con fecha de picking, % que regresó a más tardar ese día">Regreso antes del picking</th>
+        </tr></thead>
+        <tbody id="prov-cuerpo"><tr><td colspan="7" class="tj-muted">Cargando…</td></tr></tbody>
+        <tfoot id="prov-total"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <ul class="tj-notas">
+    <li>Metas iniciales (para ajustar): picking a tiempo ≥ 90 %, tiempo de ciclo ≤ 10 días, listo → salida ≤ 3 días, calidad a la primera ≥ 95 %. Semáforo: verde cumple, amarillo a menos del 10 % de la meta, rojo lejos de la meta.</li>
+    <li>La comparación es contra el periodo anterior de igual duración. Días calendario. "Listo" = inspección aprobada, empaque o cierre manual.</li>
+    <li>La inspección de calidad existe desde el 26/10/2026 y el regreso de proveedor (101) desde el 01/10/2026: los indicadores de calidad y proveedores se vuelven más confiables con las semanas.</li>
+  </ul>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<!-- Se cargan con marca de tiempo: GitHub Pages deja copias en caché 10 min y así siempre se usa la última versión. -->
+<script>document.write('<script src="seguimiento-calcs.js?t=' + Date.now() + '"><\/script><script src="indicadores-calcs.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+(function () {
+  const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRlQhy6LzGfbp4m05VwMLxzbL-0696oM7sXXApF_HbIlK6ZiHY8D1tb5LjWjBaoeg26kzYJUw6AQGPw/pub?single=true&output=csv&gid=';
+  const FUENTES = {
+    registros: { gid: 227315461, hoja: 'Registro de PrOD', requerida: true },
+    asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
+    inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
+    inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false },
+    traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false },
+    manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false },
+    determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false },
+  };
+  const REFRESCO_MIN = 5;
+  const $ = (id) => document.getElementById(id);
+  const S = window.Seguimiento, I = window.Indicadores;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const dmy = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '—');
+  const dm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
+  const nf1 = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
+  const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)} %`);
+  const d1 = (x) => (x == null ? '—' : `${nf1.format(x)} d`);
+
+  const DEF = { periodo: '30', desde: '', hasta: '', tipo: 'Todos', proveedor: '' };
+  let F = { ...DEF };
+  try { const s = JSON.parse(localStorage.getItem('tj-ind-filtros') || 'null'); if (s) F = { ...DEF, ...s }; } catch (e) { /* sin almacenamiento */ }
+  const guardar = () => { try { localStorage.setItem('tj-ind-filtros', JSON.stringify(F)); } catch (e) { /* sin almacenamiento */ } };
+
+  const crudo = {};
+  let lotes = [];
+  let ultimaCarga = null;
+
+  async function traer(id) {
+    let ultimo;
+    for (let intento = 0; intento < 3; intento++) {
+      try {
+        const res = await fetch(BASE + FUENTES[id].gid + '&_t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
+        return d3.csvParseRows(text);
+      } catch (err) { ultimo = err; await new Promise((r) => setTimeout(r, 1500 * (intento + 1))); }
+    }
+    throw ultimo;
+  }
+
+  async function cargar() {
+    const errores = [];
+    await Promise.all(Object.keys(FUENTES).map(async (id) => {
+      try { crudo[id] = await traer(id); } catch (err) { console.error(id, err); errores.push(FUENTES[id].hoja); }
+    }));
+    const faltan = Object.keys(FUENTES).filter((id) => FUENTES[id].requerida && !crudo[id]);
+    if (!faltan.length) { lotes = S.construir(crudo, hoyISO()).lotes; ultimaCarga = new Date(); }
+    $('errores').textContent = errores.length ? `No se pudieron leer: ${errores.join(', ')}. Algunos indicadores pueden quedar incompletos; se reintenta en ${REFRESCO_MIN} min.` : '';
+    $('tj-actualizado').textContent = ultimaCarga
+      ? `Datos del ${ultimaCarga.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })} a las ${ultimaCarga.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })} · se actualiza cada ${REFRESCO_MIN} min`
+      : 'No se pudieron cargar los datos.';
+    opcionesProveedor();
+    pintar();
+  }
+
+  function opcionesProveedor() {
+    const c = new Map();
+    for (const l of lotes) if (l.proveedor) c.set(l.proveedor, (c.get(l.proveedor) || 0) + 1);
+    const sel = $('f-proveedor');
+    sel.innerHTML = '<option value="">Todos</option>' + [...c.keys()].sort((a, b) => a.localeCompare(b, 'es')).map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+    if (F.proveedor && !c.has(F.proveedor)) F.proveedor = '';
+    sel.value = F.proveedor;
+  }
+
+  function rango() {
+    const hoy = hoyISO();
+    if (F.periodo === 'rango') return [F.desde || I.sumar(hoy, -29), F.hasta || hoy];
+    if (F.periodo === 'mes') return [hoy.slice(0, 8) + '01', hoy];
+    if (F.periodo === 'mesant') { const ini = I.sumar(hoy.slice(0, 8) + '01', -1).slice(0, 8) + '01'; return [ini, I.sumar(hoy.slice(0, 8) + '01', -1)]; }
+    return [I.sumar(hoy, -(Number(F.periodo) - 1)), hoy];
+  }
+
+  function filtrados() {
+    return lotes.filter((l) => {
+      if (F.tipo === 'TallerTodos') { if (!/^Taller|^Importado/.test(l.tipo)) return false; }
+      else if (F.tipo !== 'Todos' && l.tipo !== F.tipo) return false;
+      if (F.proveedor && l.proveedor !== F.proveedor) return false;
+      return true;
+    });
+  }
+
+  // Variación frente al periodo anterior, coloreada según si mejora o empeora.
+  function delta(clave, act, ant, esPct) {
+    if (act == null || ant == null) return '<span class="tj-delta igual">sin dato del periodo anterior</span>';
+    const dif = esPct ? (act - ant) * 100 : act - ant;
+    if (Math.abs(dif) < (esPct ? 0.5 : 0.05)) return '<span class="tj-delta igual">= igual que el periodo anterior</span>';
+    const dir = (I.METAS[clave] || { dir: 'max' }).dir;
+    const mejor = dir === 'max' ? dif > 0 : dif < 0;
+    const txt = esPct ? `${dif > 0 ? '+' : ''}${Math.round(dif)} pts` : `${dif > 0 ? '+' : ''}${nf1.format(dif)} d`;
+    return `<span class="tj-delta ${mejor ? 'mejor' : 'peor'}">${dif > 0 ? '▲' : '▼'} ${txt} vs. periodo anterior</span>`;
+  }
+
+  function tarjeta({ clave, titulo, valor, sem, metaTxt, deltaHtml, lineas }) {
+    return `<article class="tj-card" data-s="${sem || 'nd'}">
+      <h3><span>${titulo}</span></h3>
+      <div class="tj-val"><b>${valor}</b>${metaTxt ? `<span class="tj-meta"><i></i>Meta ${metaTxt}</span>` : ''}</div>
+      ${deltaHtml || ''}
+      ${lineas.map((x) => `<p>${x}</p>`).join('')}
+    </article>`;
+  }
+
+  function pintar() {
+    $('f-periodo').value = F.periodo; $('f-tipo').value = F.tipo; $('f-proveedor').value = F.proveedor;
+    $('f-desde').hidden = $('f-hasta').hidden = F.periodo !== 'rango';
+    if (!ultimaCarga) return;
+    const hoy = hoyISO();
+    const [desde, hasta] = rango();
+    if (F.periodo === 'rango') { $('f-desde').value = desde; $('f-hasta').value = hasta; }
+    const r = I.calcular(filtrados(), desde, hasta, hoy);
+    const A = r.actual, P = r.anterior;
+    $('rango').textContent = `${dmy(desde)} – ${dmy(hasta)} · comparado con ${dmy(r.anteriorRango[0])} – ${dmy(r.anteriorRango[1])}`;
+    $('h-resumen-sub').textContent = F.tipo !== 'Todos' || F.proveedor ? `filtrado: ${[F.tipo !== 'Todos' ? $('f-tipo').selectedOptions[0].text : '', F.proveedor].filter(Boolean).join(' · ')}` : '';
+
+    const semPk = I.semaforo('picking', A.picking.valor), semCi = I.semaforo('ciclo', A.ciclo.valor), semSa = I.semaforo('salida', A.salida.valor), semCa = I.semaforo('calidad', A.calidad.valor);
+    const pkBar = A.picking.n ? `<div class="tj-bar" title="A tiempo · tarde · sin cerrar"><span style="width:${A.picking.ok / A.picking.n * 100}%;background:var(--color-ok)"></span><span style="width:${A.picking.tarde / A.picking.n * 100}%;background:var(--color-warn)"></span><span style="width:${A.picking.pendientes / A.picking.n * 100}%;background:var(--color-bad)"></span></div>` : '';
+    const sem = A.semanal.semanas.slice(-12);
+    const maxS = Math.max(1, ...sem.map(([, n]) => n));
+    const mini = sem.length ? `<div class="tj-mini" aria-hidden="true">${sem.map(([w, n]) => `<span style="height:${Math.max(4, n / maxS * 100)}%" title="Semana del ${dm(w)}: ${n} lotes"></span>`).join('')}</div><div class="tj-mini-lbl"><span>${dm(sem[0][0])}</span><span>sem. del ${dm(sem[sem.length - 1][0])}</span></div>` : '';
+    const E = r.envejecidos;
+    const estE = Object.entries(E.porEstado).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([e, n]) => `${esc(e)} ${n}`).join(' · ');
+
+    $('cards').innerHTML = [
+      tarjeta({ clave: 'picking', titulo: 'Cumplimiento de picking', valor: pct(A.picking.valor), sem: semPk, metaTxt: I.METAS.picking.texto,
+        deltaHtml: delta('picking', A.picking.valor, P.picking.valor, true),
+        lineas: [pkBar, A.picking.n ? `<b>${A.picking.ok}</b> a tiempo · <b>${A.picking.tarde}</b> tarde · <b>${A.picking.pendientes}</b> sin cerrar, de ${A.picking.n} con picking en el periodo` : 'Sin fechas de picking en el periodo'] }),
+      tarjeta({ clave: 'ciclo', titulo: 'Tiempo de ciclo (ingreso → listo)', valor: d1(A.ciclo.valor), sem: semCi, metaTxt: I.METAS.ciclo.texto,
+        deltaHtml: delta('ciclo', A.ciclo.valor, P.ciclo.valor, false),
+        lineas: [`Mediana de <b>${A.ciclo.n}</b> lotes que quedaron listos · promedio ${d1(A.ciclo.promedio)}`] }),
+      tarjeta({ clave: 'salida', titulo: 'Listo → salida', valor: d1(A.salida.valor), sem: semSa, metaTxt: I.METAS.salida.texto,
+        deltaHtml: delta('salida', A.salida.valor, P.salida.valor, false),
+        lineas: [`Mediana de <b>${A.salida.n}</b> lotes entregados (601) o trasladados (939) · promedio ${d1(A.salida.promedio)}`] }),
+      tarjeta({ clave: 'calidad', titulo: 'Calidad a la primera', valor: pct(A.calidad.valor), sem: semCa, metaTxt: I.METAS.calidad.texto,
+        deltaHtml: delta('calidad', A.calidad.valor, P.calidad.valor, true),
+        lineas: [A.calidad.n ? `<b>${A.calidad.ok}</b> de ${A.calidad.n} lotes aprobados en su primera inspección` : 'Sin inspecciones en el periodo'] }),
+      tarjeta({ clave: 'env', titulo: `Lotes envejecidos (> ${I.DIAS_ENVEJECIDO} d)`, valor: String(E.valor), sem: E.valor ? 'cerca' : 'ok', metaTxt: '',
+        deltaHtml: '<span class="tj-delta igual">Foto de hoy, no depende del periodo</span>',
+        lineas: [`De <b>${E.abiertos}</b> lotes abiertos con movimiento en los últimos ${I.ACTIVIDAD_DIAS} días · <b>${E.d16a30}</b> de 16–30 d · <b>${E.mas30}</b> de más de 30 d`, estE ? `Más frecuentes: ${estE}` : ''] }),
+      tarjeta({ clave: 'semanal', titulo: 'Lotes listos por semana', valor: nf1.format(A.semanal.valor), sem: 'nd', metaTxt: '',
+        deltaHtml: delta('semanal', A.semanal.valor, P.semanal.valor, false).replace(/ d vs/, ' vs'),
+        lineas: [mini, `<b>${A.semanal.total}</b> lotes listos en el periodo`] }),
+    ].join('');
+
+    // Proveedores
+    const PR = r.proveedores;
+    const tag = (x) => { if (x == null) return '<span class="tj-muted">—</span>'; const s = x >= 0.9 ? 'ok' : x >= 0.7 ? 'cerca' : 'mal'; return `<span class="tj-tag ${s}">${pct(x)}</span>`; };
+    const dias = (x) => { if (x == null) return '<span class="tj-muted">—</span>'; const s = x <= 7 ? '' : x <= 10 ? 'cerca' : 'mal'; return s ? `<span class="tj-tag ${s}">${d1(x)}</span>` : d1(x); };
+    $('prov-cuerpo').innerHTML = PR.filas.length ? PR.filas.map((f) => `<tr>
+        <td class="prov${f.proveedor === '(sin dato)' ? ' sindato' : ''}" title="${f.proveedor === '(sin dato)' ? 'Lotes enviados a proveedor sin nombre en la hoja Determinación' : ''}">${esc(f.proveedor)}</td>
+        <td class="n">${f.enviados}</td><td class="n">${f.regresaron}</td>
+        <td class="n">${dias(f.diasProm)}</td>
+        <td class="n">${f.pendientes || '<span class="tj-muted">0</span>'}</td>
+        <td class="n">${f.maxPendiente != null ? `${f.maxPendiente} d` : '<span class="tj-muted">—</span>'}</td>
+        <td class="n" title="${f.nPicking} lotes con picking">${tag(f.pctPicking)}</td>
+      </tr>`).join('') : '<tr><td colspan="7" class="tj-muted">No hubo envíos a proveedor en el periodo.</td></tr>';
+    $('prov-total').innerHTML = PR.filas.length ? `<tr><td>Total</td><td class="n">${PR.total.enviados}</td><td class="n">${PR.total.regresaron}</td><td class="n">${d1(PR.total.diasProm)}</td><td class="n">${PR.total.pendientes}</td><td></td><td></td></tr>` : '';
+
+    const malos = [semPk, semCi, semSa, semCa].filter((x) => x === 'mal').length;
+    $('resumen').innerHTML = `Periodo ${dmy(desde)} – ${dmy(hasta)}: picking a tiempo <b>${pct(A.picking.valor)}</b>, ciclo <b>${d1(A.ciclo.valor)}</b>, listo → salida <b>${d1(A.salida.valor)}</b>, calidad a la primera <b>${pct(A.calidad.valor)}</b>. ${malos ? `<b>${malos} de 4</b> indicadores lejos de la meta.` : 'Indicadores en meta o cerca.'}`;
+  }
+
+  const cambiar = (p) => { F = { ...F, ...p }; guardar(); pintar(); };
+  $('f-periodo').addEventListener('change', (e) => {
+    const v = e.target.value;
+    if (v === 'rango' && !F.desde) { const h = hoyISO(); cambiar({ periodo: v, desde: I.sumar(h, -29), hasta: h }); return; }
+    cambiar({ periodo: v });
+  });
+  $('f-desde').addEventListener('change', (e) => cambiar({ desde: e.target.value }));
+  $('f-hasta').addEventListener('change', (e) => cambiar({ hasta: e.target.value }));
+  $('f-tipo').addEventListener('change', (e) => cambiar({ tipo: e.target.value }));
+  $('f-proveedor').addEventListener('change', (e) => cambiar({ proveedor: e.target.value }));
+  $('tj-refrescar').addEventListener('click', cargar);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+  setInterval(cargar, REFRESCO_MIN * 60000);
+  pintar();
+  cargar();
+})();
+</script>
+</body>
+</html>

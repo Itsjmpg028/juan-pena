@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Panel taller Jamar</title>
-<meta name="description" content="Vista de administrador: tablero de productividad y seguimiento de lotes del taller.">
+<meta name="description" content="Vista de administrador: productividad, seguimiento de lotes e indicadores del taller.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#1F2937">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,6 +37,7 @@
   <div class="ad-tabs" role="tablist" aria-label="Tableros">
     <button type="button" role="tab" id="tab-productividad" aria-controls="f-productividad" data-t="productividad">Productividad</button>
     <button type="button" role="tab" id="tab-seguimiento" aria-controls="f-seguimiento" data-t="seguimiento">Seguimiento de lotes</button>
+    <button type="button" role="tab" id="tab-indicadores" aria-controls="f-indicadores" data-t="indicadores">Indicadores</button>
   </div>
   <nav class="ad-links" aria-label="Enlaces para compartir">
     <a href="index.html" target="_blank" rel="noopener">Abrir Productividad ↗</a>
@@ -46,12 +47,13 @@
 <main class="ad-frames">
   <iframe id="f-productividad" role="tabpanel" aria-labelledby="tab-productividad" title="Productividad" data-src="index.html" hidden></iframe>
   <iframe id="f-seguimiento" role="tabpanel" aria-labelledby="tab-seguimiento" title="Seguimiento de lotes" data-src="seguimiento.html" hidden></iframe>
+  <iframe id="f-indicadores" role="tabpanel" aria-labelledby="tab-indicadores" title="Indicadores" data-src="indicadores.html" hidden></iframe>
 </main>
 <script>
 (function () {
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   function mostrar(t) {
-    if (!['productividad', 'seguimiento'].includes(t)) t = 'productividad';
+    if (!['productividad', 'seguimiento', 'indicadores'].includes(t)) t = 'productividad';
     for (const b of tabs) {
       const sel = b.dataset.t === t;
       b.setAttribute('aria-selected', String(sel));

@@ -5,7 +5,8 @@ Cumplimiento de piezas por técnico y área del taller de reacondicionamiento.
 **Enlaces**
 - Productividad (para compartir): https://itsjmpg028.github.io/juan-pena/
 - Seguimiento de lotes (para compartir): https://itsjmpg028.github.io/juan-pena/seguimiento.html
-- Panel de administrador (los dos en pestañas): https://itsjmpg028.github.io/juan-pena/admin.html — `#seguimiento` abre directo esa pestaña. No tiene contraseña: cualquiera con el enlace lo ve.
+- Indicadores (solo desde el panel de administrador): https://itsjmpg028.github.io/juan-pena/indicadores.html
+- Panel de administrador (pestañas Productividad · Seguimiento · Indicadores): https://itsjmpg028.github.io/juan-pena/admin.html — `#seguimiento` abre directo esa pestaña. No tiene contraseña: cualquiera con el enlace lo ve.
 
 Cada tablero es independiente (sin enlaces al otro); admin.html los muestra dentro de pestañas con iframes.
 
@@ -51,3 +52,16 @@ Una fila por lote con su recorrido: Fecha de ingreso (Inventario → Fe.contabil
 - Proveedor (columna *Proveedor* de la hoja *Determinación*): se ve al pasar el cursor sobre el lote, en la franja de proveedor, en el recorrido desplegado y en el Excel; filtro Proveedor (todos, con/sin proveedor o uno en particular); el buscador también encuentra por proveedor y código.
 - **Cierres manuales** (hoja *Cierres manuales*: Lote · Fecha listo · Motivo · Registrado por): el lote queda "Listo" en esa fecha (verde, "Listo (manual)" en la columna Inspección) si no tiene una inspección aprobada ni una inspección posterior. Para catalogar otro lote como listo, agregar una fila.
 - **Empaque = listo** (03/11): un lote con empaque registrado (TIPO DE SERVICIO EMPAQUE o área EMPAQUE, sea tapicero o empacador) queda "Listo" desde su primer empaque; la columna Inspección dice "Listo (empacado)". Si la última inspección es REPROCESO, solo cuenta un empaque posterior. Una inspección aprobada o un cierre manual tienen prioridad.
+
+## Indicadores (indicadores.html + indicadores-calcs.js)
+
+Pestaña del panel de administrador. Usa los mismos lotes de seguimiento-calcs.js. Filtros: periodo (últimos 30/60/90 días, mes actual, mes anterior, rango), tipo y proveedor. Cada indicador se compara con el periodo anterior de igual duración.
+
+- **Resumen** (metas iniciales en `METAS` de indicadores-calcs.js; semáforo verde = cumple, amarillo = a menos del 10 %, rojo = lejos):
+  - Cumplimiento de picking (≥ 90 %): lotes con picking en el periodo listos, regresados de proveedor o salidos a más tardar ese día.
+  - Tiempo de ciclo ingreso → listo (≤ 10 d, mediana).
+  - Listo → salida (≤ 3 d, mediana) de los lotes entregados (601) o trasladados (939) en el periodo.
+  - Calidad a la primera (≥ 95 %): primera inspección de cada lote aprobada.
+  - Lotes envejecidos: abiertos, con movimiento en los últimos 60 días y más de 15 días desde su ingreso (foto de hoy).
+  - Lotes listos por semana, con mini gráfica.
+- **Proveedores**: por proveedor, lotes enviados (161) en el periodo, regresaron, días promedio en proveedor, siguen allá, mayor espera y % de regreso antes del picking.
