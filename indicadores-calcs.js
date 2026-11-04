@@ -101,6 +101,22 @@
     return { filas, total };
   }
 
+  // Bloque 2 · Flujo semanal: por semana (lunes), lotes en seguimiento que entraron (fecha de ingreso, o inicio si no
+  // hay ingreso), quedaron listos y salieron (601/939). Neto = entraron − salieron.
+  function flujo(lotes, desde, hasta) {
+    const sem = new Map();
+    for (let w = lunes(desde); w <= hasta; w = sumar(w, 7)) sem.set(w, { semana: w, entraron: 0, listos: 0, salieron: 0, parcial: w < desde || sumar(w, 6) > hasta });
+    const sumarA = (f, k) => { if (!enRango(f, desde, hasta)) return; const s = sem.get(lunes(f)); if (s) s[k] += 1; };
+    for (const l of lotes) {
+      sumarA(l.entrada || l.inicio, 'entraron');
+      if (l.listo) sumarA(l.listo.fecha, 'listos');
+      sumarA(l.traslado, 'salieron');
+    }
+    const semanas = [...sem.values()];
+    const tot = semanas.reduce((a, s) => ({ entraron: a.entraron + s.entraron, listos: a.listos + s.listos, salieron: a.salieron + s.salieron }), { entraron: 0, listos: 0, salieron: 0 });
+    return { semanas, total: { ...tot, neto: tot.entraron - tot.salieron } };
+  }
+
   function calcular(lotes, desde, hasta, hoy) {
     const largo = dias(desde, hasta) + 1;
     const antHasta = sumar(desde, -1), antDesde = sumar(desde, -largo);
@@ -110,6 +126,7 @@
       anteriorRango: [antDesde, antHasta],
       envejecidos: envejecidos(lotes, hoy),
       proveedores: proveedores(lotes, desde, hasta, hoy),
+      flujo: flujo(lotes, desde, hasta),
     };
   }
 

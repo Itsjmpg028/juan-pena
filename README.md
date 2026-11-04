@@ -64,4 +64,5 @@ Pestaña del panel de administrador. Usa los mismos lotes de seguimiento-calcs.j
   - Calidad a la primera (≥ 95 %): primera inspección de cada lote aprobada.
   - Lotes envejecidos: abiertos, con movimiento en los últimos 60 días y más de 15 días desde su ingreso (foto de hoy).
   - Lotes listos por semana, con mini gráfica.
+- **Flujo semanal**: barras por semana (lunes) de lotes en seguimiento que entraron (fecha de ingreso), quedaron listos y salieron (601/939), con tooltip, vista de tabla y neto del periodo (entraron − salieron).
 - **Proveedores**: por proveedor, lotes enviados (161) en el periodo, regresaron, días promedio en proveedor, siguen allá, mayor espera y % de regreso antes del picking.

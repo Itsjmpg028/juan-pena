@@ -56,6 +56,34 @@
   .tj-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--color-fg) 8%, var(--color-panel)); }
   .tj-bar span { display: block; height: 100%; }
 
+  /* Bloque 2 · Flujo semanal */
+  .tj { --fl-1: #2a78d6; --fl-2: #eb6834; --fl-3: #1baf7a; }
+  @media (prefers-color-scheme: dark) { .tj { --fl-1: #3987e5; --fl-2: #d95926; --fl-3: #199e70; } }
+  .tj-panel { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: 10px; position: relative; }
+  .tj-flujo-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+  .tj-leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--cds-font-size-caption); color: var(--color-fg); }
+  .tj-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .tj-leyenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .tj-leyenda b { font-variant-numeric: tabular-nums; }
+  .tj-neto { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tj-neto b { color: var(--color-fg); }
+  .tj-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .tj-seg button { font: inherit; font-size: var(--cds-font-size-caption); padding: 4px 10px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .tj-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .tj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .tj-seg button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); } }
+  .tj-chart { position: relative; width: 100%; min-height: 240px; }
+  .tj-chart svg { display: block; width: 100%; height: 260px; overflow: visible; }
+  .tj-chart .grid line { stroke: var(--cds-chart-grid); }
+  .tj-chart .eje text { fill: var(--color-fg-muted); font-size: 11px; font-family: var(--font-anthropic-sans); }
+  .tj-chart .base { stroke: var(--cds-chart-axis); }
+  .tj-chart .hit { fill: transparent; cursor: default; }
+  .tj-chart .hit:hover, .tj-chart .hit.on { fill: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+  .tj-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); box-shadow: var(--cds-shadow-popover); border-radius: 8px; padding: 8px 10px; font-size: var(--cds-font-size-caption); color: var(--color-fg); min-width: 11rem; z-index: 5; display: grid; gap: 3px; }
+  .tj-tip[hidden] { display: none; }
+  .tj-tip b { font-weight: 600; }
+  .tj-tip span { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .tj-tip i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 4px; }
   .tj-tabla-wrap { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: auto; }
   .tj-tabla { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
   .tj-tabla th { text-align: left; font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); padding: 8px 12px; border-bottom: 2px solid var(--tj-ink); white-space: nowrap; position: sticky; top: 0; background: var(--color-panel); }
@@ -122,6 +150,22 @@
   <section class="tj-sec" aria-labelledby="h-resumen">
     <h2 id="h-resumen">Resumen <small id="h-resumen-sub"></small></h2>
     <div class="tj-cards" id="cards"></div>
+  </section>
+
+  <section class="tj-sec" aria-labelledby="h-flujo">
+    <h2 id="h-flujo">Flujo semanal <small>lotes en seguimiento que entran, quedan listos y salen cada semana</small></h2>
+    <div class="tj-panel">
+      <div class="tj-flujo-top">
+        <div class="tj-leyenda" id="flujo-leyenda"></div>
+        <div class="tj-seg" role="group" aria-label="Vista">
+          <button type="button" data-vista="grafica" aria-pressed="true">Gráfica</button><button type="button" data-vista="tabla" aria-pressed="false">Tabla</button>
+        </div>
+      </div>
+      <div class="tj-chart" id="flujo-chart"></div>
+      <div class="tj-tabla-wrap" id="flujo-tabla" hidden></div>
+      <p class="tj-neto" id="flujo-neto"></p>
+      <div class="tj-tip" id="flujo-tip" hidden></div>
+    </div>
   </section>
 
   <section class="tj-sec" aria-labelledby="h-prov">
@@ -316,9 +360,78 @@
       </tr>`).join('') : '<tr><td colspan="7" class="tj-muted">No hubo envíos a proveedor en el periodo.</td></tr>';
     $('prov-total').innerHTML = PR.filas.length ? `<tr><td>Total</td><td class="n">${PR.total.enviados}</td><td class="n">${PR.total.regresaron}</td><td class="n">${d1(PR.total.diasProm)}</td><td class="n">${PR.total.pendientes}</td><td></td><td></td></tr>` : '';
 
+    pintarFlujo(r.flujo);
+
     const malos = [semPk, semCi, semSa, semCa].filter((x) => x === 'mal').length;
     $('resumen').innerHTML = `Periodo ${dmy(desde)} – ${dmy(hasta)}: picking a tiempo <b>${pct(A.picking.valor)}</b>, ciclo <b>${d1(A.ciclo.valor)}</b>, listo → salida <b>${d1(A.salida.valor)}</b>, calidad a la primera <b>${pct(A.calidad.valor)}</b>. ${malos ? `<b>${malos} de 4</b> indicadores lejos de la meta.` : 'Indicadores en meta o cerca.'}`;
   }
+
+  // ---- Bloque 2 · Flujo semanal: barras agrupadas por semana (SVG propio) ----
+  const SERIES = [
+    { k: 'entraron', nombre: 'Entraron', c: 'var(--fl-1)' },
+    { k: 'listos', nombre: 'Quedaron listos', c: 'var(--fl-2)' },
+    { k: 'salieron', nombre: 'Salieron (601/939)', c: 'var(--fl-3)' },
+  ];
+  let vistaFlujo = 'grafica', ultimoFlujo = null;
+  const lblSem = (s) => `${dm(s.semana)}${s.parcial ? '*' : ''}`;
+  function pintarFlujo(fl) {
+    ultimoFlujo = fl;
+    const sem = fl.semanas.slice(-14);
+    $('flujo-leyenda').innerHTML = SERIES.map((x) => `<span><i style="background:${x.c}"></i>${x.nombre} <b>${fl.total[x.k]}</b></span>`).join('');
+    const n = fl.total.neto;
+    $('flujo-neto').innerHTML = `Neto del periodo (entraron − salieron): <b>${n > 0 ? '+' : ''}${n}</b> ${n > 0 ? 'lotes más en la plataforma: se está acumulando trabajo.' : n < 0 ? 'lotes menos en la plataforma: sale más de lo que entra.' : 'entra lo mismo que sale.'} ${sem.some((s) => s.parcial) ? '· * semana incompleta dentro del periodo.' : ''}`;
+    // Tabla (vista alternativa y apoyo de accesibilidad)
+    $('flujo-tabla').innerHTML = `<table class="tj-tabla"><thead><tr><th>Semana del</th>${SERIES.map((x) => `<th class="n">${x.nombre}</th>`).join('')}<th class="n">Neto</th></tr></thead><tbody>${sem.map((s) => `<tr><td>${lblSem(s)}</td>${SERIES.map((x) => `<td class="n">${s[x.k]}</td>`).join('')}<td class="n">${s.entraron - s.salieron > 0 ? '+' : ''}${s.entraron - s.salieron}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td>${SERIES.map((x) => `<td class="n">${fl.total[x.k]}</td>`).join('')}<td class="n">${n > 0 ? '+' : ''}${n}</td></tr></tfoot></table>`;
+    $('flujo-chart').hidden = vistaFlujo !== 'grafica';
+    $('flujo-tabla').hidden = vistaFlujo !== 'tabla';
+    document.querySelectorAll('[data-vista]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.vista === vistaFlujo)));
+    if (vistaFlujo !== 'grafica') return;
+    const cont = $('flujo-chart');
+    const W = Math.max(320, cont.clientWidth), H = 260, m = { t: 12, r: 8, b: 26, l: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const maxV = Math.max(4, ...sem.flatMap((s) => SERIES.map((x) => s[x.k])));
+    const paso = maxV <= 10 ? 2 : maxV <= 25 ? 5 : maxV <= 60 ? 10 : maxV <= 150 ? 25 : 50;
+    const top = Math.ceil(maxV / paso) * paso;
+    const y = (v) => m.t + ih - (v / top) * ih;
+    const gw = iw / Math.max(1, sem.length);
+    const gap = 2, bw = Math.max(3, Math.min(22, (gw * 0.72 - gap * 2) / 3));
+    const ticks = []; for (let v = 0; v <= top; v += paso) ticks.push(v);
+    const r = 4;
+    const barra = (x0, v, c) => { if (!v) return ''; const yy = y(v), h = m.t + ih - yy, rr = Math.min(r, h, bw / 2);
+      return `<path d="M${x0},${m.t + ih} V${yy + rr} Q${x0},${yy} ${x0 + rr},${yy} H${x0 + bw - rr} Q${x0 + bw},${yy} ${x0 + bw},${yy + rr} V${m.t + ih} Z" fill="${c}"></path>`; };
+    const cada = Math.ceil(sem.length / Math.max(1, Math.floor(iw / 46)));
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lotes que entraron, quedaron listos y salieron por semana">`;
+    svg += `<g class="grid">${ticks.map((t) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"></line>`).join('')}</g>`;
+    svg += `<g class="eje">${ticks.map((t) => `<text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join('')}</g>`;
+    sem.forEach((s, i) => {
+      const gx = m.l + i * gw, x0 = gx + (gw - (bw * 3 + gap * 2)) / 2;
+      svg += SERIES.map((x, j) => barra(x0 + j * (bw + gap), s[x.k], x.c)).join('');
+      if (i % cada === 0) svg += `<g class="eje"><text x="${gx + gw / 2}" y="${H - 8}" text-anchor="middle">${lblSem(s)}</text></g>`;
+    });
+    svg += `<line class="base" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}"></line>`;
+    svg += sem.map((s, i) => `<rect class="hit" data-i="${i}" x="${m.l + i * gw}" y="${m.t}" width="${gw}" height="${ih}"></rect>`).join('');
+    svg += '</svg>';
+    cont.innerHTML = svg;
+    const tip = $('flujo-tip');
+    const mostrarTip = (el) => {
+      const s = sem[Number(el.dataset.i)];
+      cont.querySelectorAll('.hit').forEach((h) => h.classList.toggle('on', h === el));
+      tip.innerHTML = `<b>Semana del ${dmy(s.semana)}${s.parcial ? ' (incompleta)' : ''}</b>${SERIES.map((x) => `<span><span><i style="background:${x.c}"></i>${x.nombre}</span><b>${s[x.k]}</b></span>`).join('')}<span><span>Neto</span><b>${s.entraron - s.salieron > 0 ? '+' : ''}${s.entraron - s.salieron}</b></span>`;
+      tip.hidden = false;
+      const pr = cont.parentElement.getBoundingClientRect(), br = el.getBoundingClientRect();
+      let left = br.left - pr.left + br.width / 2 + 12;
+      if (left + tip.offsetWidth > pr.width - 8) left = br.left - pr.left + br.width / 2 - tip.offsetWidth - 12;
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.top = (cont.offsetTop + 10) + 'px';
+    };
+    cont.querySelectorAll('.hit').forEach((h) => {
+      h.addEventListener('mouseenter', () => mostrarTip(h));
+      h.addEventListener('click', () => mostrarTip(h));
+    });
+    cont.querySelector('svg').addEventListener('mouseleave', () => { tip.hidden = true; cont.querySelectorAll('.hit.on').forEach((h) => h.classList.remove('on')); });
+  }
+  document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => { vistaFlujo = b.dataset.vista; if (ultimoFlujo) pintarFlujo(ultimoFlujo); }));
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (ultimoFlujo) pintarFlujo(ultimoFlujo); }, 150); });
 
   const cambiar = (p) => { F = { ...F, ...p }; guardar(); pintar(); };
   $('f-periodo').addEventListener('change', (e) => {
