@@ -182,7 +182,15 @@
       const inspApr = !!(insp && insp.resultado === 'APROBADO');
       const empaques = L.regs.filter((r) => r.area_id === 'emp' && !(insp && insp.resultado === 'REPROCESO' && r.fecha < insp.fecha)).map((r) => r.fecha).sort();
       const empListo = !inspApr && !manualVale && empaques.length ? empaques[0] : null;
-      const aprobado = inspApr || manualVale || !!empListo;
+      // Regreso del proveedor (101) = el producto ya pasó la inspección de ingreso y quedó Listo (04/11).
+      // Si el inspector lo marcó REPROCESO, entra al sistema pero con intervención del taller: no cuenta como listo.
+      const movs0 = (sal.get(L.lote) || []).slice().sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+      const env0 = movs0.filter((m) => m.mov === '161').pop() || null;
+      const reg0 = env0 ? movs0.find((m) => m.mov === '101' && m.fecha >= env0.fecha) || null : null;
+      const reprocesoTrasEnvio = !!(env0 && insp && insp.resultado === 'REPROCESO' && insp.fecha >= env0.fecha);
+      const tallerTrasRegreso = !!(reg0 && L.regs.some((r) => r.area_id !== 'emp' && r.fecha > reg0.fecha));
+      const provListo = !inspApr && !manualVale && !empListo && reg0 && !reprocesoTrasEnvio && !tallerTrasRegreso ? reg0.fecha : null;
+      const aprobado = inspApr || manualVale || !!empListo || !!provListo;
       const reproArea = !aprobado && insp && insp.resultado === 'REPROCESO' ? areaDe(insp.reproceso, '') : null;
 
       const inicio = (asig && asig.fecha) || (L.regs[0] && L.regs[0].fecha) || null;
@@ -239,7 +247,6 @@
       else if (aprobado) estado = 'Listo';
       else if (insp && insp.resultado === 'REPROCESO') estado = 'Reproceso';
       else if (envioProv && !volvio) estado = 'En proveedor';
-      else if (regresoProv && !L.regs.some((r) => r.fecha >= regresoProv)) estado = 'Regresó de proveedor'; // 101 sin trabajo posterior
       else if (L.regs.length) {
         const asignadas = AREAS.filter((A) => celdas[A.id].asignado);
         const completas = asignadas.length && asignadas.every((A) => celdas[A.id].estado === 'azul');
@@ -247,8 +254,8 @@
       } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Proveedor no ha venido por el servicio'; // determinado a proveedor, sin movimiento 161
       else estado = 'Por iniciar';
 
-      const fin = manualVale ? man.fecha : inspApr ? insp.fecha : empListo;
-      const motivoFin = manualVale ? 'cierre manual' : inspApr ? 'inspección' : empListo ? 'empacado' : '';
+      const fin = manualVale ? man.fecha : inspApr ? insp.fecha : empListo || provListo;
+      const motivoFin = manualVale ? 'cierre manual' : inspApr ? 'inspección' : empListo ? 'empacado' : provListo ? 'regresó de proveedor' : '';
       // Fecha en que el lote quedó listo: inspección APROBADO; si no hay inspección, el primer empaque.
       const listo = fin ? { fecha: fin, motivo: motivoFin } : empaque ? { fecha: empaque, motivo: 'empacado' } : null;
       const dListoSalida = listo && (!traslado || traslado >= listo.fecha) ? dias(listo.fecha, traslado || hoy) : null;
@@ -316,6 +323,7 @@
         insp,
         manual: manualVale ? man : null,
         empacado_listo: empListo,
+        regreso_listo: provListo,
         inspecciones: L.insp,
         estado,
         fin,

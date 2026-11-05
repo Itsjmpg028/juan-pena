@@ -201,7 +201,6 @@
         <option value="Por iniciar">Por iniciar</option>
         <option value="Proveedor no ha venido por el servicio">Proveedor no ha venido por el servicio (sin 161)</option>
         <option value="En proveedor">En proveedor</option>
-        <option value="Regresó de proveedor">Regresó de proveedor (101)</option>
         <option value="En proceso">En proceso</option>
         <option value="Por inspeccionar">Por inspeccionar</option>
         <option value="Reproceso">Reproceso</option>
@@ -437,7 +436,6 @@
     { id: 'Por iniciar', k: 'var(--color-bad)', d: 'Sin registros todavía' },
     { id: 'Proveedor no ha venido por el servicio', k: 'var(--color-warn)', d: 'Taller proveedor sin movimiento 161' },
     { id: 'En proveedor', k: '#7C3AED', d: 'Enviado a proveedor (161) sin regresar' },
-    { id: 'Regresó de proveedor', k: '#0369A1', d: 'Volvió del proveedor (101), pendiente de inspección o trabajo' },
     { id: 'En proceso', k: 'var(--color-fg-muted)', d: 'Con registros en curso' },
     { id: 'Por inspeccionar', k: 'var(--color-warn)', d: 'Áreas asignadas completas, sin empaque ni inspección' },
     { id: 'Reproceso', k: 'var(--color-bad)', d: 'Devueltos por calidad' },
@@ -572,7 +570,7 @@
     else if (l.estado === 'En proveedor') { t = 'En el proveedor'; sub = `${env} · ${l.dias_prov} ${l.dias_prov === 1 ? 'día' : 'días'} allá · sin intervención del taller`; }
     else if (l.estado === 'Regresó de proveedor') { cls = 'info'; t = 'Regresó del proveedor'; sub = `${env} · regresó ${dmy(l.regreso_prov)} · ${l.dias_prov} ${l.dias_prov === 1 ? 'día' : 'días'} allá · pendiente de inspección`; }
     else if (l.estado === 'Reproceso') { cls = 'bad'; t = 'Proveedor · reproceso'; sub = `${env} · calidad pidió reproceso`; }
-    else if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) { cls = 'ok'; t = 'Reparado por el proveedor'; sub = [env, l.regreso_prov && `regresó ${dmy(l.regreso_prov)} (${l.dias_prov} d)`, l.fin && `aprobado ${dmy(l.fin)}`, l.traslado && `${l.estado.toLowerCase()} ${dmy(l.traslado)}`].filter(Boolean).join(' · ') + ' · sin intervención del taller'; }
+    else if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) { cls = 'ok'; t = 'Reparado por el proveedor'; sub = [env, l.regreso_prov && `regresó ${dmy(l.regreso_prov)} (${l.dias_prov} d)`, l.fin && !l.regreso_listo && `aprobado ${dmy(l.fin)}`, l.regreso_listo && 'listo al ingresar (101)', l.traslado && `${l.estado.toLowerCase()} ${dmy(l.traslado)}`].filter(Boolean).join(' · ') + ' · sin intervención del taller'; }
     else { t = 'Proveedor'; sub = `${env} · sin intervención del taller`; }
     const prov = l.proveedor ? `<span class="tj-band-prov">${esc(l.proveedor)}</span>` : '';
     return `<td colspan="${S.AREAS.length}"><div class="tj-band ${cls}" title="Todo el trabajo lo hizo el proveedor${l.proveedor ? ' ' + esc(l.proveedor) : ''}: no hay asignación ni registros del taller para este lote.">${ICONO_CAMION}<div><b>${t}</b>${prov}<small>${esc(sub)}</small></div></div></td>`;
