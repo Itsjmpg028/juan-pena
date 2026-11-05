@@ -166,7 +166,8 @@
     const porArea = new Map();
     for (const i of rep) { const a = (i.reproceso || 'Sin área').trim() || 'Sin área'; porArea.set(a, (porArea.get(a) || 0) + 1); }
     const porOrigen = new Map();
-    for (const i of insp) { const o = (i.origen || 'Sin origen').trim() || 'Sin origen'; const x = porOrigen.get(o) || { origen: o, total: 0, aprobados: 0 }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; porOrigen.set(o, x); }
+    // Se agrupa sin importar mayúsculas, tildes ni espacios ("Taller Proveedor" = "Taller proveedor")
+    for (const i of insp) { const o = String(i.origen || '').replace(/\s+/g, ' ').trim() || 'Sin origen'; const k = o.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); const x = porOrigen.get(k) || { origen: o, total: 0, aprobados: 0 }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; porOrigen.set(k, x); }
     const porInsp = new Map();
     for (const i of insp) { const n = (i.inspector || 'Sin inspector').trim() || 'Sin inspector'; const x = porInsp.get(n) || { inspector: n, total: 0, aprobados: 0, reprocesos: 0, lotes: new Set() }; x.total += 1; if (i.resultado === 'APROBADO') x.aprobados += 1; else if (i.resultado === 'REPROCESO') x.reprocesos += 1; x.lotes.add(i.lote); porInsp.set(n, x); }
     const lotesInsp = new Set(insp.map((i) => i.lote)).size;
