@@ -180,7 +180,10 @@
   }
 
   function calcular(lotes, desde, hasta, hoy) {
-    lotes = lotes.filter((l) => !l.importado); // los productos importados no reciben reparación: no cuentan en ningún indicador
+    // Productos importados: cuentan en el Flujo semanal (su ingreso y su salida de la plataforma), pero no en los
+    // indicadores de reparación (tiempos, picking, calidad, envejecidos), porque no se reparan (06/11).
+    const todos = lotes;
+    lotes = lotes.filter((l) => !l.importado);
     const largo = dias(desde, hasta) + 1;
     const antHasta = sumar(desde, -1), antDesde = sumar(desde, -largo);
     return {
@@ -189,9 +192,9 @@
       anteriorRango: [antDesde, antHasta],
       envejecidos: envejecidos(lotes, hoy),
       proveedores: proveedores(lotes, desde, hasta, hoy),
-      flujo: flujo(lotes, desde, hasta),
-      flujoTaller: flujo(lotes.filter(esTaller), desde, hasta),
-      flujoVenta: flujo(lotes.filter((l) => l.tipo === 'Venta'), desde, hasta),
+      flujo: flujo(todos, desde, hasta),
+      flujoTaller: flujo(todos.filter(esTaller), desde, hasta),
+      flujoVenta: flujo(todos.filter((l) => l.tipo === 'Venta'), desde, hasta),
       etapas: etapas(lotes, desde, hasta),
       antiguedad: antiguedad(lotes, hoy),
       calidad: calidad(lotes, desde, hasta),
