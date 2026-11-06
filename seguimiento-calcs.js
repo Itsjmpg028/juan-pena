@@ -87,6 +87,8 @@
   // Fecha de corte de avisos de picking: solo los picking desde esta fecha generan aviso (vencido, vence hoy, próximo).
   // 29/10/2026: de nuevo desde el 26/10 (inicio de la inspección de calidad); el 28/10 estuvo en 01/10. Vacía = sin corte.
   const CORTE_ALERTAS = '2026-10-26';
+  // Desde esta fecha, todo lote del taller que ingrese por inventario (hoja Ingresos) se sigue aunque nadie lo haya tocado (06/11).
+  const CORTE_INGRESOS = '2026-10-26';
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
@@ -147,6 +149,13 @@
     // Movimientos de salida (hoja Traslados, copia de Salidas 939). Clase de movimiento:
     // 161 = envío a proveedor · 101 = regreso del proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta).
     // Sin clase se asume 939.
+    // Ingresos del taller desde CORTE_INGRESOS: se siguen aunque no estén en ninguna otra hoja (quedan "Por iniciar").
+    for (const r of t.inventario.rows) {
+      const l = loteNorm(r.lote);
+      const fecha = isoDate(r.fecha);
+      if (!esLote(l) || !fecha || fecha < CORTE_INGRESOS) continue;
+      if (tipoCentro(String(r.centro || '').trim()) === 'Taller') get(l);
+    }
     const sal = new Map();
     for (const r of t.traslados.rows) {
       const l = loteNorm(r.lote);
@@ -371,6 +380,6 @@
     return tc(w.length === 4 ? `${w[2]} ${w[0]}` : w.slice(0, 2).join(' '));
   };
 
-  const api = { construir, nombreCorto, CORTE_ALERTAS, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
+  const api = { construir, nombreCorto, CORTE_ALERTAS, CORTE_INGRESOS, AREAS, areaDe, tipoCentro, isoDate, isoDT, loteNorm, dias };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Seguimiento = api;
 })(typeof window !== 'undefined' ? window : globalThis);
