@@ -207,6 +207,7 @@
         <option value="__salio">Salieron de la plataforma (601 o 939)</option>
         <option value="Entregado">Entregados al cliente (601)</option>
         <option value="Trasladado">Trasladados (939)</option>
+        <option value="Producto importado">Productos importados (sin reparación)</option>
       </select>
     </label>
     <label class="tj-field" for="f-proveedor">Proveedor
@@ -442,6 +443,7 @@
     { id: 'Listo', k: 'var(--color-ok)', d: 'Inspección aprobada, empacado o cierre manual' },
     { id: 'Entregado', k: 'var(--color-ok)', d: 'Entregado al cliente (601)' },
     { id: 'Trasladado', k: '#0F766E', d: 'Trasladado (939)' },
+    { id: 'Producto importado', k: '#64748B', d: 'Producto importado: no recibe reparación' },
   ];
 
   function filtrar(sinEstado) {
@@ -487,6 +489,7 @@
   const GRUPOS = [
     { t: 'En proceso', ids: ['Por iniciar', 'Proveedor no ha venido por el servicio', 'En proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
     { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
+    { t: 'Otros', ids: ['Producto importado'] },
   ];
   function kpis(base) {
     const n = (e) => base.filter((l) => l.estado === e).length;
@@ -600,7 +603,7 @@
     return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.proveedor ? ' · proveedor: ' + esc(l.proveedor) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
-  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Proveedor no ha venido por el servicio': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7 };
+  const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Proveedor no ha venido por el servicio': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7, 'Producto importado': 8 };
   function ordenar(arr) {
     const k = F.sort, d = F.dir;
     const val = (l) => (k === 'estado' ? ORDEN_ESTADO[l.estado] : l[k]);
@@ -654,7 +657,7 @@
         <td>${celdaPicking(l)}</td>
         <td><span class="tj-estado ${l.estado.replace(/\s/g, '-')}">${esc(l.estado)}</span>${(l.estado === 'Trasladado' || l.estado === 'Entregado') && l.traslado ? `<small class="tj-estado-fecha">${dmy(l.traslado)}</small>` : l.estado === 'En proveedor' && l.envio_prov ? `<small class="tj-estado-fecha">desde ${dmy(l.envio_prov)} · ${l.dias_prov} d</small>` : l.estado === 'Regresó de proveedor' ? `<small class="tj-estado-fecha">${dmy(l.regreso_prov)} · ${l.dias_prov} d en proveedor</small>` : l.sin_envio_prov && l.estado !== 'Proveedor no ha venido por el servicio' && l.estado !== 'Listo' ? '<small class="tj-estado-fecha" style="color:var(--color-warn)">Proveedor no ha venido (sin 161)</small>' : ''}</td>
         <td class="tj-date">${l.asignacion ? dmy(l.asignacion) : '<span class="tj-muted">Sin asignación</span>'}</td>
-        ${soloProveedor(l) ? franjaProveedor(l) : S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
+        ${l.importado ? `<td colspan="${S.AREAS.length}"><div class="tj-band" title="Determinación: PRODUCTO IMPORTADO"><div><b>Producto importado</b><small>No recibe reparación del taller</small></div></div></td>` : soloProveedor(l) ? franjaProveedor(l) : S.AREAS.map((A) => `<td>${celda(l.celdas[A.id], aprobado)}</td>`).join('')}
         <td>${celdaInsp(l)}</td>
         <td class="tj-num">${diasTxt(l.d_entrada_inicio, false)}</td>
         <td class="tj-num">${diasTxt(l.d_inicio_fin, l.abierto)}</td>

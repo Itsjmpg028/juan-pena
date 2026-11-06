@@ -180,6 +180,7 @@
   }
 
   function calcular(lotes, desde, hasta, hoy) {
+    lotes = lotes.filter((l) => !l.importado); // los productos importados no reciben reparación: no cuentan en ningún indicador
     const largo = dias(desde, hasta) + 1;
     const antHasta = sumar(desde, -1), antDesde = sumar(desde, -largo);
     return {

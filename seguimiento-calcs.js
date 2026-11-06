@@ -262,6 +262,9 @@
         estado = celdas.emp.estado === 'azul' || completas ? 'Por inspeccionar' : 'En proceso';
       } else if (D && D.asignacion === 'PROVEEDOR') estado = 'Proveedor no ha venido por el servicio'; // determinado a proveedor, sin movimiento 161
       else estado = 'Por iniciar';
+      // Producto importado (Determinación = PRODUCTO IMPORTADO): no recibe reparación, no entra en ningún estado del flujo (06/11).
+      const importado = !!(D && D.asignacion === 'PRODUCTO IMPORTADO');
+      if (importado) estado = 'Producto importado';
 
       const fin = manualVale ? man.fecha : inspApr ? insp.fecha : empListo || provListo;
       const motivoFin = manualVale ? 'cierre manual' : inspApr ? 'inspección' : empListo ? 'empacado' : provListo ? 'regresó de proveedor' : '';
@@ -277,7 +280,7 @@
       const cierre = cierres[0] || null;
       let alerta = null;
       const dPick = picking ? dias(hoy, picking) : null;
-      if (picking) {
+      if (picking && !importado) {
         if (cierre) alerta = cierre.fecha <= picking ? 'a_tiempo' : 'tarde';
         else if (CORTE_ALERTAS && picking < CORTE_ALERTAS) alerta = 'previo';
         else if (dPick < 0) alerta = 'vencido';
@@ -333,6 +336,7 @@
         manual: manualVale ? man : null,
         empacado_listo: empListo,
         regreso_listo: provListo,
+        importado,
         inspecciones: L.insp,
         estado,
         fin,
