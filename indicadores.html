@@ -298,14 +298,14 @@
 
   async function traer(id) {
     let ultimo;
-    for (let intento = 0; intento < 3; intento++) {
+    for (let intento = 0; intento < 5; intento++) {
       try {
         const res = await fetch(BASE + FUENTES[id].gid + '&_t=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
         if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
         return d3.csvParseRows(text);
-      } catch (err) { ultimo = err; await new Promise((r) => setTimeout(r, 1500 * (intento + 1))); }
+      } catch (err) { ultimo = err; await new Promise((r) => setTimeout(r, 1000 * (intento + 1))); }
     }
     throw ultimo;
   }
