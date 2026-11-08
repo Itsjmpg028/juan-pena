@@ -31,10 +31,12 @@
     const corte = hasta < hoy ? hasta : hoy;
     // 1. Cumplimiento de picking: lotes con fecha de picking en el periodo (y ya cumplida); a tiempo = listo, regresado o
     //    salido a más tardar ese día.
-    const pk = lotes.filter((l) => l.picking && enRango(l.picking, desde, corte));
-    const pkOk = pk.filter((l) => l.cierre && l.cierre.fecha <= l.picking);
-    const pkTarde = pk.filter((l) => l.cierre && l.cierre.fecha > l.picking);
-    const pkPend = pk.filter((l) => !l.cierre);
+    //    OTS (cambio de solución): después del picking = incumplimiento; antes (prematura) = no se cuenta.
+    const pk = lotes.filter((l) => l.picking && enRango(l.picking, desde, corte) && l.alerta !== 'ots_prematura');
+    const pkOts = pk.filter((l) => l.alerta === 'ots_incumple');
+    const pkOk = pk.filter((l) => l.alerta !== 'ots_incumple' && l.cierre && l.cierre.fecha <= l.picking);
+    const pkTarde = pk.filter((l) => l.alerta !== 'ots_incumple' && l.cierre && l.cierre.fecha > l.picking);
+    const pkPend = pk.filter((l) => l.alerta !== 'ots_incumple' && !l.cierre);
     // 2. Tiempo de ciclo: lotes que quedaron listos en el periodo (ingreso → listo).
     const listos = lotes.filter((l) => l.listo && enRango(l.listo.fecha, desde, hasta));
     const ciclos = listos.map((l) => dias(l.entrada || l.inicio, l.listo.fecha)).filter((x) => x != null && x >= 0);
@@ -49,7 +51,7 @@
     for (const l of listos) { const w = lunes(l.listo.fecha); if (semanas.has(w)) semanas.set(w, semanas.get(w) + 1); }
     const nSem = Math.max(1, (dias(desde, hasta) + 1) / 7);
     return {
-      picking: { valor: pk.length ? pkOk.length / pk.length : null, n: pk.length, ok: pkOk.length, tarde: pkTarde.length, pendientes: pkPend.length },
+      picking: { valor: pk.length ? pkOk.length / pk.length : null, n: pk.length, ok: pkOk.length, tarde: pkTarde.length, pendientes: pkPend.length, ots: pkOts.length, otsProveedor: pkOts.filter((l) => l.ots.responsable === 'Proveedor').length },
       ciclo: { valor: mediana(ciclos), promedio: promedio(ciclos), n: ciclos.length },
       salida: { valor: mediana(salidas.map((l) => l.d_listo_salida)), promedio: promedio(salidas.map((l) => l.d_listo_salida)), n: salidas.length },
       calidad: { valor: primeras.length ? aprob.length / primeras.length : null, n: primeras.length, ok: aprob.length },

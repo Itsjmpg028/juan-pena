@@ -70,3 +70,10 @@ Pestaña del panel de administrador. Usa los mismos lotes de seguimiento-calcs.j
 - **Antigüedad de lo abierto** (foto de hoy): matriz estado × días desde el ingreso (0–7, 8–15, 16–30, > 30) de los lotes sin cerrar con movimiento en 60 días.
 - **Calidad**: inspecciones del periodo (todos los inspectores: Paul Mora y, desde 04/11, Efren Palencia), % aprobadas, reproceso por área, resultados por origen y por inspector.
 - **Proveedores**: por proveedor, lotes enviados (161) en el periodo, regresaron, días promedio en proveedor, siguen allá, mayor espera y % de regreso antes del picking.
+
+## OTS (otro tipo de solución)
+Hoja **OTS** (gid 1730200711): Lote · Fecha OTS · Solución (C, NTC, CT, CP, Dev) · Responsable (Proveedor/Plataforma, opcional) · Observación · Registrado por.
+- Un lote con OTS deja de mostrarse como vencido / vence hoy / próximo; en la columna de picking aparece "OTS · tipo". El estado del lote no cambia (sigue su flujo).
+- OTS después de la fecha de picking = incumplimiento (cuenta como no cumplido en "picking a tiempo"); antes del picking = solución prematura, no se cuenta.
+- Responsable deducido: en la fecha de picking el producto estaba en el proveedor (161 sin 101) o el proveedor no había venido por él (Determinación PROVEEDOR sin 161 ni trabajo del taller) → Proveedor; si no → Plataforma. La columna Responsable de la hoja lo reemplaza.
+- Si el lote ya estaba listo/regresado/salido antes de la OTS, manda ese cierre.

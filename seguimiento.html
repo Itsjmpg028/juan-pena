@@ -330,6 +330,7 @@
     traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'no se ven envíos a proveedor, entregas ni traslados' },
     manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false, sin: 'no se aplican los lotes catalogados como listos a mano' },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
+    ots: { gid: 1730200711, hoja: 'OTS', requerida: false, sin: 'los lotes con cambio de solución (OTS) siguen apareciendo como vencidos' },
   };
   const REFRESCO_MIN = 5;
   const PAGINA = 150;
@@ -553,6 +554,11 @@
     const f = dmy(l.picking), n = l.d_picking;
     const tip = `Picking: ${f}${l.pieza ? '\nPieza: ' + l.pieza : ''}${l.fin ? '\nAprobado por calidad: ' + dmy(l.fin) : ''}${l.empaque ? '\nEmpacado: ' + dmy(l.empaque) : ''}${l.traslado ? '\nSalida: ' + dmy(l.traslado) : ''}${l.alerta === 'previo' ? '\nPicking anterior al ' + dmy(S.CORTE_ALERTAS) + ': sin aviso' : ''}`;
     const c = (cls, b, sm) => `<div class="tj-c ${cls}" title="${esc(tip)}"><b>${b}</b>${sm ? `<small>${esc(sm)}</small>` : ''}</div>`;
+    if (l.ots && ['ots_incumple', 'ots_prematura'].includes(l.alerta)) {
+      const o = l.ots;
+      const t2 = `${tip}\nOTS ${o.solucion} el ${dmy(o.fecha)} · ${o.incumple ? 'incumplimiento de ' + o.responsable.toLowerCase() + (o.auto ? ' (deducido)' : '') : 'solución prematura (antes del picking, no es incumplimiento)'}${o.obs ? '\n' + o.obs : ''}${o.quien ? '\nRegistró: ' + o.quien : ''}`;
+      return `<div class="tj-c gris" title="${esc(t2)}"><b>OTS · ${esc(o.solucion || '—')}</b><small>${dm(o.fecha)} · ${o.incumple ? 'incumpl. ' + esc(o.responsable.toLowerCase()) : 'prematura'}</small></div>`;
+    }
     switch (l.alerta) {
       case 'vencido': return c('rojo', 'Vencido', `${dm(l.picking)} · hace ${-n} d`);
       case 'hoy': return c('rojo', 'Vence hoy', dm(l.picking));
@@ -697,7 +703,9 @@
         'Centro': l.centro || '',
         'Fecha de ingreso': fx(l.entrada),
         'Fecha de picking': fx(l.picking),
-        'Aviso de picking': { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Próximo a vencer' }[l.alerta] || '',
+        'Aviso de picking': { vencido: 'Vencido', hoy: 'Vence hoy', proximo: 'Próximo a vencer', ots_incumple: 'OTS (incumplimiento)', ots_prematura: 'OTS (prematura)' }[l.alerta] || '',
+        'OTS': l.ots ? `${l.ots.solucion} ${dmy(l.ots.fecha)}` : '',
+        'Responsable OTS': l.ots && l.ots.incumple ? l.ots.responsable : '',
         'Días para picking': ['vencido', 'hoy', 'proximo', 'en_plazo'].includes(l.alerta) ? l.d_picking : null,
         'Estado': l.estado,
         'Fecha de asignación': fx(l.asignacion),

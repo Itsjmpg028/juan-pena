@@ -274,6 +274,7 @@
     traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false },
     manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false },
+    ots: { gid: 1730200711, hoja: 'OTS', requerida: false },
   };
   const REFRESCO_MIN = 5;
   const $ = (id) => document.getElementById(id);
@@ -383,7 +384,7 @@
     $('h-resumen-sub').textContent = F.tipo !== 'Todos' || F.proveedor ? `filtrado: ${[F.tipo !== 'Todos' ? $('f-tipo').selectedOptions[0].text : '', F.proveedor].filter(Boolean).join(' · ')}` : '';
 
     const semPk = I.semaforo('picking', A.picking.valor), semCi = I.semaforo('ciclo', A.ciclo.valor), semSa = I.semaforo('salida', A.salida.valor), semCa = I.semaforo('calidad', A.calidad.valor);
-    const pkBar = A.picking.n ? `<div class="tj-bar" title="A tiempo · tarde · sin cerrar"><span style="width:${A.picking.ok / A.picking.n * 100}%;background:var(--color-ok)"></span><span style="width:${A.picking.tarde / A.picking.n * 100}%;background:var(--color-warn)"></span><span style="width:${A.picking.pendientes / A.picking.n * 100}%;background:var(--color-bad)"></span></div>` : '';
+    const pkBar = A.picking.n ? `<div class="tj-bar" title="A tiempo · tarde · sin cerrar u OTS"><span style="width:${A.picking.ok / A.picking.n * 100}%;background:var(--color-ok)"></span><span style="width:${A.picking.tarde / A.picking.n * 100}%;background:var(--color-warn)"></span><span style="width:${(A.picking.pendientes + (A.picking.ots || 0)) / A.picking.n * 100}%;background:var(--color-bad)"></span></div>` : '';
     const sem = A.semanal.semanas.slice(-12);
     const maxS = Math.max(1, ...sem.map(([, n]) => n));
     const mini = sem.length ? `<div class="tj-mini" aria-hidden="true">${sem.map(([w, n]) => `<span style="height:${Math.max(4, n / maxS * 100)}%" title="Semana del ${dm(w)}: ${n} lotes"></span>`).join('')}</div><div class="tj-mini-lbl"><span>${dm(sem[0][0])}</span><span>sem. del ${dm(sem[sem.length - 1][0])}</span></div>` : '';
@@ -393,7 +394,7 @@
     $('cards').innerHTML = [
       tarjeta({ clave: 'picking', titulo: 'Cumplimiento de picking', valor: pct(A.picking.valor), sem: semPk, metaTxt: I.METAS.picking.texto,
         deltaHtml: delta('picking', A.picking.valor, P.picking.valor, true),
-        lineas: [pkBar, A.picking.n ? `<b>${A.picking.ok}</b> a tiempo · <b>${A.picking.tarde}</b> tarde · <b>${A.picking.pendientes}</b> sin cerrar, de ${A.picking.n} con picking en el periodo` : 'Sin fechas de picking en el periodo'] }),
+        lineas: [pkBar, A.picking.n ? `<b>${A.picking.ok}</b> a tiempo · <b>${A.picking.tarde}</b> tarde · <b>${A.picking.pendientes}</b> sin cerrar${A.picking.ots ? ` · <b>${A.picking.ots}</b> con OTS (${A.picking.otsProveedor} proveedor, ${A.picking.ots - A.picking.otsProveedor} plataforma)` : ''}, de ${A.picking.n} con picking en el periodo` : 'Sin fechas de picking en el periodo'] }),
       tarjeta({ clave: 'ciclo', titulo: 'Tiempo de ciclo (ingreso → listo)', valor: d1(A.ciclo.valor), sem: semCi, metaTxt: I.METAS.ciclo.texto,
         deltaHtml: delta('ciclo', A.ciclo.valor, P.ciclo.valor, false),
         lineas: [`Mediana de <b>${A.ciclo.n}</b> lotes que quedaron listos · promedio ${d1(A.ciclo.promedio)}`] }),

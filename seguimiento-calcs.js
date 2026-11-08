@@ -79,6 +79,7 @@
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'], material: ['Material'] },
     traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'], mov: ['Clase de movimiento'] },
     manuales: { lote: ['Lote'], fecha: ['Fecha listo', 'Fecha'], motivo: ['Motivo'], quien: ['Registrado por'] },
+    ots: { lote: ['Lote'], fecha: ['Fecha OTS', 'Fecha'], solucion: ['Solución', 'Solucion'], responsable: ['Responsable'], obs: ['Observación', 'Observacion'], quien: ['Registrado por'] },
     determinacion: { lote: ['Lote'], proveedor: ['Proveedor', 'PROVEEDOR '], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
   // Hoja Determinación (solo lotes del taller 2000): TALLER = Taller plataforma, PROVEEDOR = Taller proveedor.
@@ -100,7 +101,7 @@
       if (!values[n]) { t[n] = { rows: [], faltan: [] }; continue; }
       t[n] = tabla(values[n], MAPAS[n]);
       const req = n === 'determinacion' ? ['lote', 'asignacion'] : ['lote', 'fecha'];
-      if (n === 'manuales' && !values[n].length) continue;
+      if ((n === 'manuales' || n === 'ots') && !values[n].length) continue;
       const falt = t[n].faltan.filter((c) => req.includes(c));
       if (falt.length) avisos.push(`La hoja ${n} no tiene las columnas: ${falt.join(', ')}`);
     }
@@ -145,6 +146,18 @@
       if (!esLote(l) || !fecha) continue;
       get(l);
       manual.set(l, { fecha, motivo: r.motivo || 'Cierre manual', quien: r.quien || '' });
+    }
+    // Otro tipo de solución (hoja "OTS"): al cliente se le cambió la solución (C, NTC, CT, CP, Dev). El lote deja de
+    // generar alertas de picking; si la OTS fue después del picking cuenta como incumplimiento (07/11).
+    const ots = new Map();
+    for (const r of t.ots.rows) {
+      const l = loteNorm(r.lote);
+      const fecha = isoDate(r.fecha);
+      if (!esLote(l) || !fecha) continue;
+      const prev = ots.get(l);
+      if (prev && prev.fecha > fecha) continue;
+      const resp = norm(r.responsable);
+      ots.set(l, { fecha, solucion: String(r.solucion || '').trim(), responsableHoja: resp === 'PROVEEDOR' ? 'Proveedor' : resp === 'PLATAFORMA' ? 'Plataforma' : '', obs: r.obs || '', quien: r.quien || '' });
     }
     // Movimientos de salida (hoja Traslados, copia de Salidas 939). Clase de movimiento:
     // 161 = envío a proveedor · 101 = regreso del proveedor · 601 = entrega al cliente (taller) · 939 = traslado (venta).
@@ -280,8 +293,20 @@
       const cierre = cierres[0] || null;
       let alerta = null;
       const dPick = picking ? dias(hoy, picking) : null;
+      const O = ots.get(L.lote) || null;
+      let otsInfo = null;
+      if (O) {
+        // Responsable: si a la fecha de picking (o de la OTS, si no hay picking) el producto estaba en el proveedor o el
+        // proveedor no había venido por él, el incumplimiento es del proveedor; si no, de la plataforma. La hoja manda.
+        const ref = picking || O.fecha;
+        const enProv = !!(envioProv && envioProv <= ref && !(regresoProv && regresoProv <= ref));
+        const sinRecoger = !!(D && D.asignacion === 'PROVEEDOR' && (!envioProv || envioProv > ref) && !L.regs.some((r) => r.fecha <= ref));
+        const auto = enProv || sinRecoger ? 'Proveedor' : 'Plataforma';
+        otsInfo = { ...O, responsable: O.responsableHoja || auto, auto: !O.responsableHoja, incumple: !!(picking && O.fecha > picking) };
+      }
       if (picking && !importado) {
-        if (cierre) alerta = cierre.fecha <= picking ? 'a_tiempo' : 'tarde';
+        if (O && !(cierre && cierre.fecha <= O.fecha)) alerta = otsInfo.incumple ? 'ots_incumple' : 'ots_prematura';
+        else if (cierre) alerta = cierre.fecha <= picking ? 'a_tiempo' : 'tarde';
         else if (CORTE_ALERTAS && picking < CORTE_ALERTAS) alerta = 'previo';
         else if (dPick < 0) alerta = 'vencido';
         else if (dPick === 0) alerta = 'hoy';
@@ -308,6 +333,7 @@
         picking,
         picking_txt: D ? D.picking_txt : '',
         alerta,
+        ots: otsInfo,
         d_picking: dPick,
         // Días de retraso frente al picking: incumplido (sin cerrar) o cumplido tarde.
         retraso: alerta === 'vencido' ? -dPick : alerta === 'tarde' ? dias(picking, cierre.fecha) : null,
