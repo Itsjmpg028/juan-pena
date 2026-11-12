@@ -317,7 +317,10 @@
       // Determinado a PROVEEDOR, sin envío (161) y con trabajo registrado en el taller: se reparó en la plataforma
       // (cambio de estrategia interno), así que se muestra como Taller plataforma.
       const cambioPlataforma = !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && L.regs.length);
-      const tipo = cambioPlataforma ? 'Taller plataforma' : D ? (TIPO_DET[D.asignacion] || 'Taller') : tipoBase;
+      // Taller sin determinación: si ya fue al proveedor (161) se toma como Taller proveedor; si tiene trabajo
+      // registrado en el taller, como Taller plataforma (12/11). Se marca con * en el tablero.
+      const inferido = !D && tipoBase === 'Taller' ? (envioProv ? 'Taller proveedor' : L.regs.length ? 'Taller plataforma' : '') : '';
+      const tipo = cambioPlataforma ? 'Taller plataforma' : D ? (TIPO_DET[D.asignacion] || 'Taller') : inferido || tipoBase;
       // Último movimiento: ingreso, asignación, registros, inspecciones y salidas (161/601/939).
       const fechas = [entrada && entrada.fecha, asig && asig.fecha, ...L.regs.map((r) => r.fecha), ...L.insp.map((i) => i.fecha), ...movs.map((m) => m.fecha)].filter(Boolean).sort();
       out.push({
@@ -347,6 +350,7 @@
         // Determinado a proveedor pero sin movimiento 161 (todavía no se ha enviado).
         sin_envio_prov: !!(D && D.asignacion === 'PROVEEDOR' && !envioProv && !salida && !cambioPlataforma),
         cambio_plataforma: cambioPlataforma,
+        tipo_inferido: !!inferido,
         movs,
         listo,
         d_listo_salida: dListoSalida,
