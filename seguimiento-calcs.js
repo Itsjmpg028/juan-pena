@@ -89,7 +89,7 @@
   // 29/10/2026: de nuevo desde el 26/10 (inicio de la inspección de calidad); el 28/10 estuvo en 01/10. Vacía = sin corte.
   const CORTE_ALERTAS = '2026-10-26';
   // Desde esta fecha, todo lote del taller que ingrese por inventario (hoja Ingresos) se sigue aunque nadie lo haya tocado (06/11).
-  const CORTE_INGRESOS = '2026-10-26';
+  const CORTE_INGRESOS = '2026-10-01'; // 26/10 → 01/10 el 12/11
 
   const dias = (a, b) => (a && b ? Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000) : null);
 
