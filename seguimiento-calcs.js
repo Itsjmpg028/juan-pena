@@ -87,7 +87,7 @@
   const DIAS_AVISO = 2; // "Próximo": faltan 1 o 2 días para el picking y el lote no está listo
   // Fecha de corte de avisos de picking: solo los picking desde esta fecha generan aviso (vencido, vence hoy, próximo).
   // 29/10/2026: de nuevo desde el 26/10 (inicio de la inspección de calidad); el 28/10 estuvo en 01/10. Vacía = sin corte.
-  const CORTE_ALERTAS = '2026-10-26';
+  const CORTE_ALERTAS = '2026-10-01'; // 26/10 → 01/10 el 12/11
   // Desde esta fecha, todo lote del taller que ingrese por inventario (hoja Ingresos) se sigue aunque nadie lo haya tocado (06/11).
   const CORTE_INGRESOS = '2026-10-01'; // 26/10 → 01/10 el 12/11
 
