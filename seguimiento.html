@@ -198,7 +198,7 @@
         <option value="Listo">Listos (aprobados por calidad)</option>
         <option value="__picklisto">Listos para picking (aprobados o empacados)</option>
         <option value="__pend">No listos</option>
-        <option value="__sindet">Talleres sin determinación (abiertos)</option>
+        <option value="__sindet">Talleres sin determinación (sin intervenir)</option>
         <option value="Por iniciar">Por iniciar</option>
         <option value="Proveedor no ha venido por el servicio">Proveedor no ha venido por el servicio (sin 161)</option>
         <option value="En proveedor">En proveedor</option>
@@ -489,8 +489,9 @@
     });
   }
 
-  // Taller que todavía no está en la hoja Determinación y sigue abierto en la plataforma (12/11).
-  const sinDet = (l) => l.tipo === 'Taller' && !['Listo', 'Entregado', 'Trasladado'].includes(l.estado);
+  // Taller que no está en la hoja Determinación, sigue abierto y nadie lo ha intervenido: sin registros del taller,
+  // sin envío al proveedor (161) y sin inspección (12/11).
+  const sinDet = (l) => l.tipo === 'Taller' && !['Listo', 'Entregado', 'Trasladado'].includes(l.estado) && !l.regs.length && !l.envio_prov && !l.insp;
   const GRUPOS = [
     { t: 'En proceso', ids: ['Por iniciar', 'Proveedor no ha venido por el servicio', 'En proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
     { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
@@ -521,7 +522,7 @@
         chip('data-picking', 'hoy', F.picking === 'hoy', 'var(--color-bad)', 'Vencen hoy', pk('hoy'), 'La fecha de picking es hoy y el lote no está listo') +
         chip('data-picking', 'proximo', F.picking === 'proximo', 'var(--color-warn)', 'Próximos (1–2 d)', pk('proximo'), 'Faltan 1 o 2 días para el picking y el lote no está listo')) +
       grupo('Determinación',
-        chip('data-estado', '__sindet', F.estado === '__sindet', 'var(--color-warn)', 'Talleres sin determinación', base.filter(sinDet).length, 'Lotes de taller que no están en la hoja Determinación y siguen abiertos (no listos ni salidos): falta definir si van a plataforma, proveedor o son importados', base.some(sinDet) ? ' alerta' : '')) +
+        chip('data-estado', '__sindet', F.estado === '__sindet', 'var(--color-warn)', 'Talleres sin determinación', base.filter(sinDet).length, 'Lotes de taller que no están en la hoja Determinación y nadie ha intervenido (sin registros del taller, sin envío al proveedor, sin inspección): falta definir si van a plataforma, proveedor o son importados', base.some(sinDet) ? ' alerta' : '')) +
       grupo('Tiempos promedio',
         info('Ingreso → listo', prom == null ? '—' : prom + ' d', promA == null ? 'Lotes con inspección aprobada' : `Asignación → listo: ${promA} d`) +
         info('Listo → salida', prS == null ? '—' : String(prS).replace('.', ',') + ' d', `${sl.length} lotes salieron · ${esp} listos esperando en la plataforma`)) +
