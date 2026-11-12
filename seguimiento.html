@@ -198,6 +198,7 @@
         <option value="Listo">Listos (aprobados por calidad)</option>
         <option value="__picklisto">Listos para picking (aprobados o empacados)</option>
         <option value="__pend">No listos</option>
+        <option value="__sindet">Talleres sin determinación (abiertos)</option>
         <option value="Por iniciar">Por iniciar</option>
         <option value="Proveedor no ha venido por el servicio">Proveedor no ha venido por el servicio (sin 161)</option>
         <option value="En proveedor">En proveedor</option>
@@ -480,6 +481,7 @@
         if (F.estado === '__picklisto') { if (!(l.estado === 'Listo' || l.empaque)) return false; }
         else if (F.estado === '__pend') { if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) return false; }
         else if (F.estado === '__salio') { if (!l.traslado) return false; }
+        else if (F.estado === '__sindet') { if (!sinDet(l)) return false; }
         else if (l.estado !== F.estado) return false;
       }
       if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q) && !String(l.proveedor).toLowerCase().includes(q) && !String(l.material).includes(q)) return false;
@@ -487,6 +489,8 @@
     });
   }
 
+  // Taller que todavía no está en la hoja Determinación y sigue abierto en la plataforma (12/11).
+  const sinDet = (l) => l.tipo === 'Taller' && !['Listo', 'Entregado', 'Trasladado'].includes(l.estado);
   const GRUPOS = [
     { t: 'En proceso', ids: ['Por iniciar', 'Proveedor no ha venido por el servicio', 'En proveedor', 'En proceso', 'Por inspeccionar', 'Reproceso'] },
     { t: 'Cerrados', ids: ['Listo', 'Entregado', 'Trasladado'] },
@@ -516,6 +520,8 @@
         chip('data-picking', 'vencido', F.picking === 'vencido', 'var(--color-bad)', 'Vencidos', pk('vencido'), 'Pasó la fecha de picking y el lote no está listo ni ha salido', pk('vencido') ? ' alerta' : '') +
         chip('data-picking', 'hoy', F.picking === 'hoy', 'var(--color-bad)', 'Vencen hoy', pk('hoy'), 'La fecha de picking es hoy y el lote no está listo') +
         chip('data-picking', 'proximo', F.picking === 'proximo', 'var(--color-warn)', 'Próximos (1–2 d)', pk('proximo'), 'Faltan 1 o 2 días para el picking y el lote no está listo')) +
+      grupo('Determinación',
+        chip('data-estado', '__sindet', F.estado === '__sindet', 'var(--color-warn)', 'Talleres sin determinación', base.filter(sinDet).length, 'Lotes de taller que no están en la hoja Determinación y siguen abiertos (no listos ni salidos): falta definir si van a plataforma, proveedor o son importados', base.some(sinDet) ? ' alerta' : '')) +
       grupo('Tiempos promedio',
         info('Ingreso → listo', prom == null ? '—' : prom + ' d', promA == null ? 'Lotes con inspección aprobada' : `Asignación → listo: ${promA} d`) +
         info('Listo → salida', prS == null ? '—' : String(prS).replace('.', ',') + ' d', `${sl.length} lotes salieron · ${esp} listos esperando en la plataforma`)) +
@@ -647,7 +653,7 @@
     const pi = base.filter((l) => l.estado === 'Por iniciar').length;
 
     $('resumen').innerHTML = `<b>${base.length}</b> lotes en el periodo (de ${nTotal} seguidos desde julio): <b>${listos}</b> listos, <b>${base.filter((l) => l.traslado).length}</b> salieron de la plataforma, <b>${pi}</b> sin iniciar${rep ? `, <b>${rep}</b> en reproceso` : ''}.`;
-    const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos', __salio: 'salieron de la plataforma' };
+    const ESTADO_TXT = { __picklisto: 'listos para picking', __pend: 'no listos', Listo: 'listos', __salio: 'salieron de la plataforma', __sindet: 'talleres sin determinación' };
     $('t-titulo').textContent = `Lotes (${lista.length}${F.estado ? ' · ' + (ESTADO_TXT[F.estado] || F.estado) : ''})`;
 
     if (!lista.length) { $('cuerpo').innerHTML = '<tr><td colspan="16" class="tj-msg">No hay lotes con estos filtros.</td></tr>'; return; }
