@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bandeja del supervisor</title>
+<meta name="description" content="Lo que necesita atención hoy en el taller: asignaciones sin registro, reprocesos sin reinspección y lotes trabajados sin inspección.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1F2937">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="tokens.css?v=7">
+<style>
+  .bj {
+    --tj-crimson: #D2132C;
+    --tj-ink: #1F2937;
+    --sv-alta-bg: color-mix(in srgb, var(--color-bad) 14%, var(--color-panel)); --sv-alta-fg: var(--color-bad);
+    --sv-media-bg: color-mix(in srgb, var(--color-warn) 16%, var(--color-panel)); --sv-media-fg: var(--color-warn);
+    --sv-baja-bg: color-mix(in srgb, var(--color-fg) 7%, var(--color-panel)); --sv-baja-fg: var(--color-fg);
+    --listo: #0369A1;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg);
+  }
+  @media (prefers-color-scheme: dark) { .bj { --listo: #38BDF8; } }
+  .bj :is(select, button, a):focus-visible { outline: 2px solid var(--tj-crimson); outline-offset: 2px; }
+  .bj-hero { background: var(--tj-ink); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-lg) var(--cds-pad-xl); display: grid; gap: var(--cds-gap-sm); position: relative; overflow: hidden; }
+  .bj-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tj-crimson); }
+  .bj-eyebrow { display: flex; align-items: center; gap: 10px; font-size: var(--cds-font-size-caption); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+  .bj-eyebrow b { color: #fff; font-weight: 700; letter-spacing: .14em; }
+  .bj-eyebrow i { width: 8px; height: 8px; background: var(--tj-crimson); border-radius: 2px; display: inline-block; }
+  .bj-hero h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; color: #fff; }
+  .bj-takeaway { margin: 0; color: rgba(255,255,255,.8); max-width: 80ch; }
+  .bj-takeaway b { color: #fff; font-weight: 600; }
+
+  .bj-err { border: 1px solid var(--color-bad); color: var(--color-bad); background: var(--sv-alta-bg); border-radius: var(--cds-radius); padding: 10px 14px; font-size: var(--cds-font-size-caption); }
+  .bj-err:empty { display: none; }
+
+  .bj-opts { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; font-size: var(--cds-font-size-body); color: var(--color-fg-muted); }
+  .bj-opts label { display: inline-flex; align-items: center; gap: 6px; }
+  .bj-opts select { font: inherit; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 8px; padding: 6px 8px; min-height: 36px; }
+
+  .bj-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--cds-gap-md); }
+  .bj-kpi { text-decoration: none; color: inherit; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: 4px; align-content: start; }
+  .bj-kpi:hover { border-color: var(--color-fg-muted); }
+  .bj-kpi span { font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); }
+  .bj-kpi b { font-size: 2.4rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bj-kpi b.alerta { color: var(--tj-crimson); }
+  @media (prefers-color-scheme: dark) { .bj-kpi b.alerta { color: #F0475C; } }
+  .bj-kpi p { margin: 0; font-size: var(--cds-font-size-body); }
+  .bj-kpi small { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+
+  .bj-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-md); scroll-margin-top: 16px; }
+  .bj-sec-head { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); align-items: flex-end; justify-content: space-between; }
+  .bj-sec h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+  .bj-sec-head p { margin: 4px 0 0; color: var(--color-fg-muted); max-width: 80ch; }
+  .bj-legend { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .sv { display: inline-block; font-size: var(--cds-font-size-caption); font-weight: 700; border-radius: 6px; padding: 2px 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sv.alta { background: var(--sv-alta-bg); color: var(--sv-alta-fg); }
+  .sv.media { background: var(--sv-media-bg); color: var(--sv-media-fg); }
+  .sv.baja { background: var(--sv-baja-bg); color: var(--sv-baja-fg); }
+
+  .bj-tecs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); align-items: start; }
+  .bj-tec { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .bj-tec-head { display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--color-border-line); }
+  .bj-tec-head h3 { margin: 0; font-size: 1.05rem; }
+  .bj-tec-head small { display: block; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin-top: 2px; }
+  .bj-tec-n { text-align: right; flex: none; }
+  .bj-tec-n b { display: block; font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .bj-tec-n small { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .bj-flag { display: inline-block; margin-top: 6px; font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--sv-alta-fg); background: var(--sv-alta-bg); border-radius: 6px; padding: 2px 8px; }
+  .bj-tec ul { list-style: none; margin: 0; padding: 4px 0; }
+  .bj-tec li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 7px 16px; }
+  .bj-tec li + li { border-top: 1px solid color-mix(in srgb, var(--color-border-line) 60%, transparent); }
+  .bj-lote { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bj-prod { display: block; color: var(--color-fg-muted); font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 16rem; }
+  .bj-otro { display: block; font-size: .74rem; color: var(--color-warn); }
+  .bj-right { display: grid; justify-items: end; gap: 2px; flex: none; }
+  .bj-right small { color: var(--color-fg-muted); font-size: .72rem; white-space: nowrap; }
+
+  .bj-scroll { overflow-x: auto; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); }
+  .bj-table { width: 100%; min-width: 48rem; border-collapse: collapse; font-size: var(--cds-font-size-body); }
+  .bj-table th { text-align: left; font-size: var(--cds-font-size-caption); text-transform: uppercase; letter-spacing: .04em; color: var(--color-fg-muted); font-weight: 600; padding: 10px 14px; border-bottom: 2px solid var(--tj-ink); white-space: nowrap; }
+  @media (prefers-color-scheme: dark) { .bj-table th { border-bottom-color: var(--color-border-line); } }
+  .bj-table td { padding: 10px 14px; border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .bj-table tr:last-child td { border-bottom: 0; }
+  .bj-muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .bj-ok { display: inline-block; font-size: var(--cds-font-size-caption); font-weight: 700; color: var(--listo); background: color-mix(in srgb, var(--listo) 13%, var(--color-panel)); border-radius: 6px; padding: 2px 8px; }
+  .bj-msg { padding: 20px; text-align: center; color: var(--color-fg-muted); background: var(--color-panel); border: 1px dashed var(--color-border-line); border-radius: var(--cds-radius); }
+
+  .bj-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; background: var(--color-panel); }
+  .bj-seg button { font: inherit; font-size: var(--cds-font-size-body); padding: 0 14px; min-height: 40px; border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .bj-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .bj-seg button[aria-pressed="true"] { background: var(--tj-ink); color: #fff; font-weight: 600; }
+
+  .bj-rules { border-top: 1px solid var(--color-border-line); padding-top: var(--cds-gap-md); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .bj-rules b { color: var(--color-fg); }
+</style>
+</head>
+<body>
+<main id="dash-root">
+<div class="bj">
+  <header class="bj-hero">
+    <div class="bj-eyebrow"><i></i><b>Jamar</b><span>Plataforma Galapa · taller</span></div>
+    <h1>Bandeja del supervisor</h1>
+    <p class="bj-takeaway" id="resumen">Cargando datos del libro APP JAMAR…</p>
+    <div class="tj-updated"><span id="tj-actualizado">Cargando…</span><button type="button" id="tj-refrescar">Actualizar ahora</button></div>
+  </header>
+
+  <div class="bj-err" id="errores" role="alert"></div>
+
+  <div class="bj-opts">
+    <label for="o-asig">Asignaciones con más de
+      <select id="o-asig"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="7">7</option></select>
+      días</label>
+    <label for="o-insp">Sin inspección desde hace
+      <select id="o-insp"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="7">7</option></select>
+      días o más</label>
+  </div>
+
+  <section class="bj-kpis" id="kpis" aria-label="Resumen"></section>
+
+  <section class="bj-sec" id="asignaciones" aria-labelledby="h-asig">
+    <div class="bj-sec-head">
+      <div>
+        <h2 id="h-asig">1 · Asignaciones sin registro, por técnico</h2>
+        <p id="p-asig">Lotes asignados en los que el técnico asignado todavía no ha registrado trabajo.</p>
+      </div>
+      <div class="bj-legend" aria-label="Días desde la asignación"><span class="sv alta">10+ días</span><span class="sv media">5–9 días</span><span class="sv baja">menos de 5</span></div>
+    </div>
+    <div class="bj-tecs" id="tecs"><div class="bj-msg">Cargando…</div></div>
+  </section>
+
+  <section class="bj-sec" id="reprocesos" aria-labelledby="h-rep">
+    <div class="bj-sec-head">
+      <div>
+        <h2 id="h-rep">2 · Reprocesos sin reinspección</h2>
+        <p>Lotes cuya última inspección fue REPROCESO. Primero los que ya tienen trabajo (o regreso del proveedor) después de la inspección: están listos para que Calidad los vuelva a revisar.</p>
+      </div>
+    </div>
+    <div id="rep"><div class="bj-msg">Cargando…</div></div>
+  </section>
+
+  <section class="bj-sec" id="sin-inspeccion" aria-labelledby="h-sin">
+    <div class="bj-sec-head">
+      <div>
+        <h2 id="h-sin">3 · Trabajados sin inspección</h2>
+        <p id="p-sin">Lotes abiertos con trabajo de recuperación que no tienen inspección después de su último registro.</p>
+      </div>
+      <div class="bj-seg" id="o-tipo" role="group" aria-label="Tipo de lote"></div>
+    </div>
+    <div id="sin"><div class="bj-msg">Cargando…</div></div>
+  </section>
+
+  <section class="bj-rules" aria-label="Cómo se calcula">
+    <div><b>Asignaciones.</b> Cruza Asignación (la más reciente de cada lote) con Registro de PrOD: el técnico asignado no tiene ningún registro de ese lote. Si lo registró otro técnico de la misma área, se indica. No incluye lotes ya cerrados (listos, entregados, trasladados o importados).</div>
+    <div><b>Reprocesos.</b> Última inspección del lote = REPROCESO y el lote no se ha cerrado por otra vía. "Listo para reinspeccionar" = hay trabajo registrado después de la inspección o, si fue a proveedor, un regreso 101.</div>
+    <div><b>Sin inspección.</b> Lotes abiertos (no listos, no en reproceso ni en el proveedor) cuyo último registro de recuperación es del 26/10 o después y no tienen inspección ese día o más tarde. Taller = taller plataforma o proveedor; el resto, venta. Días calendario.</div>
+  </section>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<!-- Se cargan con marca de tiempo: GitHub Pages deja copias en caché 10 min y así siempre se usa la última versión. -->
+<script>document.write('<script src="seguimiento-calcs.js?t=' + Date.now() + '"><\/script><script src="bandeja-calcs.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+(function () {
+  const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRlQhy6LzGfbp4m05VwMLxzbL-0696oM7sXXApF_HbIlK6ZiHY8D1tb5LjWjBaoeg26kzYJUw6AQGPw/pub?single=true&output=csv&gid=';
+  const FUENTES = {
+    registros: { gid: 227315461, hoja: 'Registro de PrOD', requerida: true },
+    asignacion: { gid: 500072892, hoja: 'Asignación', requerida: true },
+    inspeccion: { gid: 1089294021, hoja: 'Inspección Calidad', requerida: true },
+    inventario: { gid: 636168285, hoja: 'Ingresos', requerida: false, sin: 'los lotes de venta pueden quedar sin tipo' },
+    traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'no se ven envíos ni regresos de proveedor ni salidas' },
+    manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false, sin: 'no se aplican los lotes catalogados como listos a mano' },
+    determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se distingue taller plataforma de proveedor' },
+    ots: { gid: 1730200711, hoja: 'OTS', requerida: false, sin: '' },
+  };
+  const REFRESCO_MIN = 5;
+  const $ = (id) => document.getElementById(id);
+  const S = window.Seguimiento, B = window.Bandeja;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const corto = (n) => S.nombreCorto(n);
+  const titulo = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  const dm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
+  const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const AREA = { eban: 'Ebanistería', acab: 'Acabados', cost: 'Costura', tapi: 'Tapicería', emp: 'Empaque' };
+  const pl = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+  // Preferencias de esta vista (se recuerdan en este navegador).
+  let O = { ...B.DEF, tipo: 'taller' };
+  try { const s = JSON.parse(localStorage.getItem('tj-bandeja') || 'null'); if (s) O = { ...O, ...s }; } catch (e) { /* sin almacenamiento */ }
+  const guardar = () => { try { localStorage.setItem('tj-bandeja', JSON.stringify(O)); } catch (e) { /* sin almacenamiento */ } };
+
+  const crudo = {};
+  let lotes = [];
+  let ultimaCarga = null;
+
+  async function traer(id) {
+    const f = FUENTES[id];
+    let ultimo;
+    for (let intento = 0; intento < 5; intento++) {
+      try {
+        const res = await fetch(BASE + f.gid + '&_t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (/^\s*</.test(text)) throw new Error('no devolvió un CSV');
+        return d3.csvParseRows(text);
+      } catch (err) { ultimo = err; await new Promise((r) => setTimeout(r, 1000 * (intento + 1))); }
+    }
+    throw ultimo;
+  }
+
+  async function cargar() {
+    const errores = [];
+    await Promise.all(Object.keys(FUENTES).map(async (id) => {
+      try { crudo[id] = await traer(id); } catch (err) { console.error(id, err); errores.push(id); }
+    }));
+    const faltan = Object.keys(FUENTES).filter((id) => FUENTES[id].requerida && !crudo[id]);
+    const msgs = errores.filter((id) => FUENTES[id].sin !== '').map((id) => {
+      const f = FUENTES[id];
+      return `No se pudo leer la hoja <b>${esc(f.hoja)}</b>${f.requerida ? '' : ` (${esc(f.sin)})`}. Revisa que esté publicada en la web como CSV.`;
+    });
+    if (!faltan.length) {
+      const r = S.construir(crudo, hoyISO());
+      lotes = r.lotes;
+      msgs.push(...r.avisos.map(esc));
+      ultimaCarga = new Date();
+    }
+    $('errores').innerHTML = msgs.join('<br>');
+    $('tj-actualizado').textContent = ultimaCarga
+      ? `Datos del ${ultimaCarga.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })} a las ${ultimaCarga.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })} · se actualiza cada ${REFRESCO_MIN} min`
+      : 'No se pudieron cargar los datos. Se reintenta en unos minutos.';
+    pintar();
+  }
+
+  function pintar() {
+    $('o-asig').value = String(O.diasAsignacion);
+    $('o-insp').value = String(O.diasSinInspeccion);
+    if (!ultimaCarga) return;
+    const R = B.bandeja(lotes, hoyISO(), { diasAsignacion: O.diasAsignacion, diasSinInspeccion: O.diasSinInspeccion });
+    const nT = R.sinInspeccion.taller.length, nV = R.sinInspeccion.venta.length;
+    const maxA = R.asignaciones.reduce((m, t) => Math.max(m, t.max), 0);
+    const sinReg = R.asignaciones.filter((t) => t.diasSinRegistrar === null || t.diasSinRegistrar >= 7);
+
+    $('resumen').innerHTML = `Hoy: <b>${pl(R.totalAsignaciones, 'asignación', 'asignaciones')} sin registro</b>, <b>${pl(R.reprocesos.length, 'reproceso', 'reprocesos')}</b> esperando reinspección (${R.reprocesosListos} ya ${R.reprocesosListos === 1 ? 'trabajado' : 'trabajados'}) y <b>${pl(nT, 'lote de taller', 'lotes de taller')}</b> trabajados sin inspección.` +
+      (sinReg.length ? ` Sin registros hace más de 7 días: ${sinReg.map((t) => esc(corto(t.tecnico))).join(', ')}.` : '');
+
+    $('kpis').innerHTML = `
+      <a class="bj-kpi" href="#asignaciones"><span>1 · Asignaciones sin registro</span><b class="${R.totalAsignaciones ? 'alerta' : ''}">${R.totalAsignaciones}</b>
+        <p>de ${pl(R.asignaciones.length, 'técnico', 'técnicos')}, con más de ${O.diasAsignacion} ${O.diasAsignacion === 1 ? 'día' : 'días'}</p>
+        <small>${maxA ? `La más antigua lleva ${maxA} días` : 'Sin pendientes'}</small></a>
+      <a class="bj-kpi" href="#reprocesos"><span>2 · Reprocesos sin reinspección</span><b>${R.reprocesos.length}</b>
+        <p>${R.reprocesosListos} listos para que Calidad los revise</p>
+        <small>${R.reprocesos.length ? `El más antiguo lleva ${Math.max(...R.reprocesos.map((r) => r.dias))} días` : 'Sin pendientes'}</small></a>
+      <a class="bj-kpi" href="#sin-inspeccion"><span>3 · Trabajados sin inspección</span><b>${nT}</b>
+        <p>lotes de taller con ${O.diasSinInspeccion} o más días desde el último registro</p>
+        <small>+${nV} de venta en la misma situación</small></a>`;
+
+    // 1. Asignaciones
+    $('p-asig').textContent = `Lotes asignados hace más de ${O.diasAsignacion} ${O.diasAsignacion === 1 ? 'día' : 'días'} en los que el técnico asignado todavía no ha registrado trabajo. Los lotes ya cerrados no aparecen (hoy hay ${R.cerradosSinRegistro} asignaciones cerradas sin registro del técnico; se ven en naranja en Seguimiento).`;
+    $('tecs').innerHTML = R.asignaciones.length ? R.asignaciones.map((t) => `
+      <article class="bj-tec">
+        <div class="bj-tec-head">
+          <div><h3 title="${esc(t.tecnico)}">${esc(corto(t.tecnico))}</h3>
+            <small>${esc(t.area)} · último registro ${dm(t.ultimo)}</small>
+            ${t.diasSinRegistrar === null || t.diasSinRegistrar >= 7 ? `<span class="bj-flag">${t.ultimo ? `Sin registros hace ${t.diasSinRegistrar} días` : 'Nunca ha registrado'}</span>` : ''}
+          </div>
+          <div class="bj-tec-n"><b>${t.n}</b><small>${t.n === 1 ? 'pendiente' : 'pendientes'}</small></div>
+        </div>
+        <ul>${t.lotes.map((l) => `
+          <li><div style="min-width:0"><span class="bj-lote">${esc(l.lote)}</span><span class="bj-prod" title="${esc(l.producto)}">${esc(l.producto)}</span>
+            ${l.otros.length ? `<span class="bj-otro">Lo registró ${esc(l.otros.map(corto).join(', '))}</span>` : ''}</div>
+            <div class="bj-right"><span class="sv ${l.sev}">${l.dias} d</span><small>asignado ${dm(l.asignacion)}</small></div></li>`).join('')}
+        </ul>
+      </article>`).join('') : '<div class="bj-msg">No hay asignaciones pendientes con ese plazo.</div>';
+
+    // 2. Reprocesos
+    $('rep').innerHTML = R.reprocesos.length ? `<div class="bj-scroll"><table class="bj-table">
+      <thead><tr><th scope="col">Lote</th><th scope="col">Reprocesar en</th><th scope="col">Inspección</th><th scope="col">Días</th><th scope="col">Qué falta</th></tr></thead>
+      <tbody>${R.reprocesos.map((r) => `<tr>
+        <td><span class="bj-lote">${esc(r.lote)}</span><span class="bj-prod" title="${esc(r.producto)}">${esc(r.producto)}</span></td>
+        <td><b>${esc(titulo(r.area) || '—')}</b><div class="bj-muted">${esc(r.origen)}</div></td>
+        <td style="white-space:nowrap">${dm(r.fecha)} · ${esc(r.inspector)}${r.obs ? `<div class="bj-muted" style="white-space:normal;max-width:22rem">${esc(r.obs)}</div>` : ''}</td>
+        <td><span class="sv ${r.sev}">${r.dias} d</span></td>
+        <td>${r.listo ? `<span class="bj-ok">${esc(r.situacion.texto)}</span>` : `<span>${esc(r.situacion.texto)}</span>`}
+          ${r.situacion.detalle ? `<div class="bj-muted">${esc(r.situacion.tecnico ? `Trabajado por ${corto(r.situacion.tecnico)} el ${dm(r.situacion.fecha)}` : r.situacion.detalle.replace(/\d{4}-\d{2}-\d{2}/, dm(r.situacion.fecha)))}</div>` : ''}</td>
+      </tr>`).join('')}</tbody></table></div>` : '<div class="bj-msg">No hay reprocesos pendientes de reinspección.</div>';
+
+    // 3. Sin inspección
+    $('p-sin').textContent = `Lotes abiertos con trabajo de recuperación (desde el 26/10) que llevan ${O.diasSinInspeccion} o más días sin inspección después de su último registro.`;
+    $('o-tipo').innerHTML = `<button type="button" data-v="taller" aria-pressed="${O.tipo === 'taller'}">Taller · ${nT}</button><button type="button" data-v="venta" aria-pressed="${O.tipo === 'venta'}">Venta · ${nV}</button>`;
+    const lista = R.sinInspeccion[O.tipo] || [];
+    $('sin').innerHTML = lista.length ? `<div class="bj-scroll"><table class="bj-table">
+      <thead><tr><th scope="col">Lote</th><th scope="col">Estado</th><th scope="col">Áreas que trabajaron</th><th scope="col">Técnicos</th><th scope="col">Último registro</th><th scope="col">Días</th></tr></thead>
+      <tbody>${lista.map((c) => `<tr>
+        <td><span class="bj-lote">${esc(c.lote)}</span><span class="bj-prod" title="${esc(c.producto)}">${esc(c.producto)}</span></td>
+        <td>${esc(c.estado)}<div class="bj-muted">${esc(c.tipo)}</div></td>
+        <td>${esc(c.areas.map((a) => AREA[a] || a).join(' · '))}</td>
+        <td class="bj-muted" style="font-size:var(--cds-font-size-body)">${esc(c.tecnicos.map(corto).join(', '))}</td>
+        <td style="white-space:nowrap">${dm(c.ultimo)}</td>
+        <td><span class="sv ${c.sev}">${c.dias} d</span></td>
+      </tr>`).join('')}</tbody></table></div>` : '<div class="bj-msg">No hay lotes en esta situación.</div>';
+  }
+
+  $('o-asig').addEventListener('change', (e) => { O.diasAsignacion = Number(e.target.value); guardar(); pintar(); });
+  $('o-insp').addEventListener('change', (e) => { O.diasSinInspeccion = Number(e.target.value); guardar(); pintar(); });
+  $('o-tipo').addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; O.tipo = b.dataset.v; guardar(); pintar(); });
+  $('tj-refrescar').addEventListener('click', () => cargar());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+  setInterval(() => cargar(), REFRESCO_MIN * 60000);
+  pintar();
+  cargar();
+})();
+</script>
+</body>
+</html>

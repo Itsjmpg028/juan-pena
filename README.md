@@ -6,7 +6,8 @@ Cumplimiento de piezas por técnico y área del taller de reacondicionamiento.
 - Productividad (para compartir): https://itsjmpg028.github.io/juan-pena/
 - Seguimiento de lotes (para compartir): https://itsjmpg028.github.io/juan-pena/seguimiento.html
 - Indicadores (solo desde el panel de administrador): https://itsjmpg028.github.io/juan-pena/indicadores.html
-- Panel de administrador (pestañas Productividad · Seguimiento · Indicadores): https://itsjmpg028.github.io/juan-pena/admin.html — `#seguimiento` abre directo esa pestaña. No tiene contraseña: cualquiera con el enlace lo ve.
+- Bandeja del supervisor (solo desde el panel de administrador): https://itsjmpg028.github.io/juan-pena/bandeja.html
+- Panel de administrador (pestañas Productividad · Seguimiento · Indicadores · Bandeja del supervisor): https://itsjmpg028.github.io/juan-pena/admin.html — `#seguimiento` abre directo esa pestaña. No tiene contraseña: cualquiera con el enlace lo ve.
 
 Cada tablero es independiente (sin enlaces al otro); admin.html los muestra dentro de pestañas con iframes.
 
@@ -79,3 +80,15 @@ Hoja **OTS** (gid 1730200711): Lote · Fecha OTS · Solución (C, NTC, CT, CP, D
 - OTS después de la fecha de picking = incumplimiento (cuenta como no cumplido en "picking a tiempo"); antes del picking = solución prematura, no se cuenta.
 - Responsable deducido: en la fecha de picking el producto estaba en el proveedor (161 sin 101) o el proveedor no había venido por él (Determinación PROVEEDOR sin 161 ni trabajo del taller) → Proveedor; si no → Plataforma. La columna Responsable de la hoja lo reemplaza.
 - Si el lote ya estaba listo/regresado/salido antes de la OTS, manda ese cierre.
+
+## Bandeja del supervisor
+
+**Ver:** pestaña "Bandeja del supervisor" del panel de administrador (`admin.html#bandeja`) o https://itsjmpg028.github.io/juan-pena/bandeja.html
+
+Lo que necesita atención hoy. Usa las mismas hojas y la misma lógica de estados que Seguimiento (`seguimiento-calcs.js`); la lógica propia está en `bandeja-calcs.js` (funciones puras, probadas en Node).
+
+1. **Asignaciones sin registro, por técnico:** el técnico asignado (asignación más reciente del lote) no tiene ningún registro del lote y pasaron más de N días (2 por defecto). Indica si lo registró otro técnico de la misma área y marca a quien lleva 7 días o más sin registrar nada. No incluye lotes cerrados (Listo, Entregado, Trasladado, Producto importado).
+2. **Reprocesos sin reinspección:** última inspección = REPROCESO. "Listo para reinspeccionar" si hay trabajo registrado después de la inspección o, si el reproceso fue a PROVEEDOR, un regreso 101 posterior.
+3. **Trabajados sin inspección:** lotes abiertos (no listos, ni en reproceso, ni en el proveedor) con último registro de recuperación desde el 26/10/2026 y sin inspección ese día o después, con N días o más (3 por defecto). Pestañas Taller / Venta.
+
+Colores por días: rojo 10+, ámbar 5–9, gris menos de 5. Los plazos se eligen arriba y se recuerdan en el navegador.
