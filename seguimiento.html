@@ -214,6 +214,12 @@
     <label class="tj-field" for="f-proveedor">Proveedor
       <select id="f-proveedor"><option value="">Todos</option></select>
     </label>
+    <label class="tj-field" for="f-depto">Departamento
+      <select id="f-depto"><option value="">Todos</option></select>
+    </label>
+    <label class="tj-field" for="f-ciudad">Ciudad
+      <select id="f-ciudad"><option value="">Todas</option></select>
+    </label>
     <label class="tj-field" for="f-picking">Fecha de picking
       <select id="f-picking">
         <option value="">Todos</option>
@@ -331,6 +337,7 @@
     traslados: { gid: 1586789490, hoja: 'Traslados', requerida: false, sin: 'no se ven envíos a proveedor, entregas ni traslados' },
     manuales: { gid: 2022561668, hoja: 'Cierres manuales', requerida: false, sin: 'no se aplican los lotes catalogados como listos a mano' },
     determinacion: { gid: 509668073, hoja: 'Determinación', requerida: false, sin: 'no se ven taller plataforma/proveedor ni las alertas de picking' },
+    servicios: { gid: 1815200341, hoja: 'Servicios', requerida: false, sin: 'no se ven el departamento ni la ciudad de destino' },
     ots: { gid: 1730200711, hoja: 'OTS', requerida: false, sin: 'los lotes con cambio de solución (OTS) siguen apareciendo como vencidos' },
   };
   const REFRESCO_MIN = 5;
@@ -347,11 +354,11 @@
 
   // Filtros (se recuerdan en este navegador)
   // tecnicos: [] = todos; campo: fecha a la que se aplica el periodo o el rango (desde/hasta, AAAA-MM-DD).
-  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', campo: 'ultimo_mov', desde: '', hasta: '', tecnicos: [], proveedor: '', estado: '', picking: '', sort: 'ultimo_mov', dir: -1 };
+  const DEF = { buscar: '', tipo: 'Todos', asig: 'Todos', periodo: '30', campo: 'ultimo_mov', desde: '', hasta: '', tecnicos: [], proveedor: '', depto: '', ciudad: '', estado: '', picking: '', sort: 'ultimo_mov', dir: -1 };
   let F = { ...DEF };
   try { const s = JSON.parse(localStorage.getItem('tj-seg-filtros2') || 'null'); if (s) F = { ...DEF, ...s, buscar: '', estado: '' }; } catch (e) { /* sin almacenamiento */ }
   if (!Array.isArray(F.tecnicos)) F.tecnicos = [];
-  const guardar = () => { try { const { tipo, asig, periodo, campo, desde, hasta, tecnicos, proveedor, picking, sort, dir } = F; localStorage.setItem('tj-seg-filtros2', JSON.stringify({ tipo, asig, periodo, campo, desde, hasta, tecnicos, proveedor, picking, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
+  const guardar = () => { try { const { tipo, asig, periodo, campo, desde, hasta, tecnicos, proveedor, depto, ciudad, picking, sort, dir } = F; localStorage.setItem('tj-seg-filtros2', JSON.stringify({ tipo, asig, periodo, campo, desde, hasta, tecnicos, proveedor, depto, ciudad, picking, sort, dir })); } catch (e) { /* sin almacenamiento */ } };
 
   const crudo = {};
   let datos = { lotes: [], avisos: [] };
@@ -404,6 +411,7 @@
       : 'No se pudieron cargar los datos. Se reintenta en unos minutos.';
     opcionesTecnico();
     opcionesProveedor();
+    opcionesDestino();
     pintar();
   }
 
@@ -416,6 +424,22 @@
       nombres.map((n) => `<option value="${esc(n)}">${esc(n)} (${cuenta.get(n)})</option>`).join('');
     if (F.proveedor && !['__con', '__sin'].includes(F.proveedor) && !cuenta.has(F.proveedor)) F.proveedor = '';
     sel.value = F.proveedor;
+  }
+  // Departamento / Ciudad (hoja Servicios). Las ciudades se limitan al departamento elegido.
+  function opcionesDestino() {
+    const dep = new Map(), ciu = new Map();
+    for (const l of datos.lotes) {
+      if (!l.departamento) continue;
+      dep.set(l.departamento, (dep.get(l.departamento) || 0) + 1);
+      if (!F.depto || F.depto === l.departamento) ciu.set(l.ciudad, (ciu.get(l.ciudad) || 0) + 1);
+    }
+    const orden = (m) => [...m.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'));
+    if (F.depto && F.depto !== '__sin' && !dep.has(F.depto)) F.depto = '';
+    if (F.ciudad && !ciu.has(F.ciudad)) F.ciudad = '';
+    $('f-depto').innerHTML = '<option value="">Todos</option><option value="__sin">Sin destino</option>' + orden(dep).map((n) => `<option value="${esc(n)}">${esc(n)} (${dep.get(n)})</option>`).join('');
+    $('f-ciudad').innerHTML = '<option value="">Todas</option>' + orden(ciu).map((n) => `<option value="${esc(n)}">${esc(n)} (${ciu.get(n)})</option>`).join('');
+    $('f-depto').value = F.depto; $('f-ciudad').value = F.ciudad;
+    $('f-ciudad').disabled = F.depto === '__sin';
   }
   let todosTecnicos = [];
   function opcionesTecnico() {
@@ -477,6 +501,8 @@
       if (F.asig === 'Sin' && l.asignacion) return false;
       if (selTec.size && !l.tecnicos.some((t) => selTec.has(t))) return false;
       if (F.proveedor === '__con' ? !l.proveedor : F.proveedor === '__sin' ? !!l.proveedor : F.proveedor && l.proveedor !== F.proveedor) return false;
+      if (F.depto === '__sin' ? !!l.departamento : F.depto && l.departamento !== F.depto) return false;
+      if (F.ciudad && l.ciudad !== F.ciudad) return false;
       if (!sinEstado && F.estado) {
         if (F.estado === '__picklisto') { if (!(l.estado === 'Listo' || l.empaque)) return false; }
         else if (F.estado === '__pend') { if (['Listo', 'Entregado', 'Trasladado'].includes(l.estado)) return false; }
@@ -484,7 +510,7 @@
         else if (F.estado === '__sindet') { if (!sinDet(l)) return false; }
         else if (l.estado !== F.estado) return false;
       }
-      if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q) && !String(l.proveedor).toLowerCase().includes(q) && !String(l.material).includes(q)) return false;
+      if (q && !l.lote.includes(q) && !String(l.producto).toLowerCase().includes(q) && !String(l.pieza).toLowerCase().includes(q) && !String(l.proveedor).toLowerCase().includes(q) && !String(l.ciudad).toLowerCase().includes(q) && !String(l.material).includes(q)) return false;
       return true;
     });
   }
@@ -613,7 +639,7 @@
     if (l.manual) ev.push({ f: l.manual.fecha, h: l.manual.fecha + ' 23:59', t: `<b>Catalogado como listo</b> (cierre manual)${l.manual.quien ? ' · ' + esc(l.manual.quien) : ''}${l.manual.motivo ? ' · ' + esc(l.manual.motivo) : ''}`, d: 'var(--color-ok)' });
     for (const i of l.inspecciones) ev.push({ f: i.fecha, h: i.dt, t: `<b>Inspección ${esc(titulo(i.resultado))}</b> · ${esc(titulo(i.inspector))}${i.origen ? ' · ' + esc(i.origen) : ''}${i.reproceso ? ' · reprocesar ' + esc(titulo(i.reproceso)) : ''}${i.obs ? ' · “' + esc(i.obs) + '”' : ''}`, d: i.resultado === 'APROBADO' ? 'var(--color-ok)' : 'var(--color-bad)' });
     ev.sort((a, b) => ((a.h || a.f) < (b.h || b.f) ? -1 : 1));
-    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.proveedor ? ' · proveedor: ' + esc(l.proveedor) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
+    return `<tr class="tj-det"><td colspan="16"><h3>${[esc(l.lote), l.material && 'código ' + esc(l.material), esc(l.producto), l.centro && 'centro ' + esc(l.centro)].filter(Boolean).join(' · ')}${l.determinacion ? ' · determinación ' + esc(l.determinacion) : ''}${l.proveedor ? ' · proveedor: ' + esc(l.proveedor) : ''}${l.departamento ? ' · destino: ' + esc([l.ciudad, l.departamento].filter(Boolean).join(', ')) : ''}${l.pieza ? ' · pieza: ' + esc(l.pieza) : ''}</h3><ul class="tj-tl">${ev.map((e) => `<li style="--d:${e.d}"><span class="tj-date">${dmy(e.f)}${e.h && !/ 23:5[89]/.test(e.h) ? ' ' + e.h.slice(11, 16) : ''}</span> — ${e.t}</li>`).join('')}</ul></td></tr>`;
   }
 
   const ORDEN_ESTADO = { 'Reproceso': 0, 'Por iniciar': 1, 'Proveedor no ha venido por el servicio': 1.5, 'En proveedor': 2, 'Regresó de proveedor': 2.5, 'En proceso': 3, 'Por inspeccionar': 4, 'Listo': 5, 'Entregado': 6, 'Trasladado': 7, 'Producto importado': 8 };
@@ -661,7 +687,7 @@
     const filas = lista.slice(0, visibles).map((l) => {
       const abierto = abiertos.has(l.lote);
       const cls = l.estado === 'Listo' ? 'tj-lista' : l.estado === 'Reproceso' ? 'tj-repro' : '';
-      const tipLote = [l.material && `Código: ${l.material}`, l.proveedor && `Proveedor: ${l.proveedor}`, l.pieza && `Pieza: ${l.pieza}`, l.determinacion && `Determinación: ${l.determinacion}`, l.picking && `Picking: ${dmy(l.picking)}`, l.producto].filter(Boolean).join('\n');
+      const tipLote = [l.material && `Código: ${l.material}`, l.proveedor && `Proveedor: ${l.proveedor}`, l.departamento && `Destino: ${l.ciudad ? l.ciudad + ', ' : ''}${l.departamento}`, l.pieza && `Pieza: ${l.pieza}`, l.determinacion && `Determinación: ${l.determinacion}`, l.picking && `Picking: ${dmy(l.picking)}`, l.producto].filter(Boolean).join('\n');
       const aprobado = l.estado === 'Listo';
       return `<tr class="${cls}" data-lote="${esc(l.lote)}" aria-expanded="${abierto}">
         <td class="tj-sticky" title="${esc(tipLote)}"><button type="button" class="tj-lote" aria-expanded="${abierto}">${esc(l.lote)}</button><span class="tj-prod">${esc(l.producto)}</span></td>
@@ -704,6 +730,8 @@
         'Código material': l.material ? Number(l.material) || l.material : '',
         'Producto': l.producto || '',
         'Proveedor': l.proveedor || '',
+        'Departamento': l.departamento || '',
+        'Ciudad': l.ciudad || '',
         'Pieza': l.pieza || '',
         'Tipo': l.tipo || '',
         'Determinación (hoja)': l.determinacion || '',
@@ -825,6 +853,8 @@
   });
   $('f-campo').addEventListener('change', (e) => cambiar({ campo: e.target.value }));
   $('f-proveedor').addEventListener('change', (e) => cambiar({ proveedor: e.target.value }));
+  $('f-depto').addEventListener('change', (e) => { F.depto = e.target.value; F.ciudad = ''; opcionesDestino(); cambiar({}); });
+  $('f-ciudad').addEventListener('change', (e) => cambiar({ ciudad: e.target.value }));
   $('f-desde').addEventListener('change', (e) => cambiar({ desde: e.target.value }));
   $('f-hasta').addEventListener('change', (e) => cambiar({ hasta: e.target.value }));
   // Técnicos (selección múltiple): lista vacía = todos.

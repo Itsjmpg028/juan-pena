@@ -79,6 +79,7 @@
     inventario: { centro: ['Centro'], fecha: ['Fe.contabilización'], producto: ['Texto breve de material', 'Producto'], lote: ['Lote'], material: ['Material'] },
     traslados: { lote: ['Lote'], fecha: ['Fecha traslado', 'Fe.contabilización'], centro: ['Centro'], mov: ['Clase de movimiento'] },
     manuales: { lote: ['Lote'], fecha: ['Fecha listo', 'Fecha'], motivo: ['Motivo'], quien: ['Registrado por'] },
+    servicios: { lote: ['Lote', 'Número de servicio'], departamento: ['Departamento'], ciudad: ['Ciudad'] },
     ots: { lote: ['Lote'], fecha: ['Fecha OTS', 'Fecha'], solucion: ['Solución', 'Solucion'], responsable: ['Responsable'], obs: ['Observación', 'Observacion'], quien: ['Registrado por'] },
     determinacion: { lote: ['Lote'], proveedor: ['Proveedor', 'PROVEEDOR '], pieza: ['PIEZA'], asignacion: ['ASIGNACION', 'ASIGNACIÓN', 'DETERMINACION', 'DETERMINACIÓN'], picking: ['FECHA DE PICKING'] },
   };
@@ -100,8 +101,8 @@
     for (const n of Object.keys(MAPAS)) {
       if (!values[n]) { t[n] = { rows: [], faltan: [] }; continue; }
       t[n] = tabla(values[n], MAPAS[n]);
-      const req = n === 'determinacion' ? ['lote', 'asignacion'] : ['lote', 'fecha'];
-      if ((n === 'manuales' || n === 'ots') && !values[n].length) continue;
+      const req = n === 'determinacion' ? ['lote', 'asignacion'] : n === 'servicios' ? ['lote', 'departamento'] : ['lote', 'fecha'];
+      if ((n === 'manuales' || n === 'ots' || n === 'servicios') && !(values[n] || []).length) continue;
       const falt = t[n].faltan.filter((c) => req.includes(c));
       if (falt.length) avisos.push(`La hoja ${n} no tiene las columnas: ${falt.join(', ')}`);
     }
@@ -149,6 +150,12 @@
     }
     // Otro tipo de solución (hoja "OTS"): al cliente se le cambió la solución (C, NTC, CT, CP, Dev). El lote deja de
     // generar alertas de picking; si la OTS fue después del picking cuenta como incumplimiento (07/11).
+    // Destino del servicio (hoja Servicios ← "Detalle servicio 3" del libro Inventario plataforma galapa) (17/11).
+    const destino = new Map();
+    for (const r of (t.servicios || { rows: [] }).rows) {
+      const l = loteNorm(r.lote);
+      if (esLote(l) && r.departamento) destino.set(l, { departamento: String(r.departamento).trim(), ciudad: String(r.ciudad || '').trim() });
+    }
     const ots = new Map();
     for (const r of t.ots.rows) {
       const l = loteNorm(r.lote);
@@ -333,6 +340,8 @@
         determinacion: D ? D.asignacion : '',
         pieza: D ? D.pieza : '',
         proveedor: D ? D.proveedor : '',
+        departamento: (destino.get(L.lote) || {}).departamento || '',
+        ciudad: (destino.get(L.lote) || {}).ciudad || '',
         picking,
         picking_txt: D ? D.picking_txt : '',
         alerta,
