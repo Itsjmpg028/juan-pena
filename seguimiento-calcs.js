@@ -104,7 +104,8 @@
       const req = n === 'determinacion' ? ['lote', 'asignacion'] : n === 'servicios' ? ['lote', 'departamento'] : ['lote', 'fecha'];
       if ((n === 'manuales' || n === 'ots' || n === 'servicios') && !(values[n] || []).length) continue;
       const falt = t[n].faltan.filter((c) => req.includes(c));
-      if (falt.length) avisos.push(`La hoja ${n} no tiene las columnas: ${falt.join(', ')}`);
+      if (falt.length && n === 'servicios') avisos.push(`La hoja Servicios llegó sin encabezados (primera celda: "${String((values[n][0] || [])[0] || '').slice(0, 40)}"). Revisa que en el libro APP JAMAR la hoja Servicios muestre datos y que esté publicada.`);
+      else if (falt.length) avisos.push(`La hoja ${n} no tiene las columnas: ${falt.join(', ')}`);
     }
     const lotes = new Map();
     const get = (l) => {
@@ -156,6 +157,7 @@
       const l = loteNorm(r.lote);
       if (esLote(l) && r.departamento) destino.set(l, { departamento: String(r.departamento).trim(), ciudad: String(r.ciudad || '').trim() });
     }
+    if ((t.servicios || { rows: [] }).rows.length && !destino.size) avisos.push('La hoja Servicios llegó sin datos de destino: si en el libro sí tiene datos, vuelve a publicarla (Archivo → Compartir → Publicar en la web).');
     const ots = new Map();
     for (const r of t.ots.rows) {
       const l = loteNorm(r.lote);
